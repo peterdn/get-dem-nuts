@@ -31,6 +31,7 @@ class Squirrel:
     def __init__(self, x, y):
         self.x = x
         self.y = y
+        self.energy = 1000
 
 
 class Nut:
@@ -45,6 +46,7 @@ class Game:
         self.assets = {}
         self.squirrel = Squirrel(14, 14)
         self.nuts = []
+        self.energy_bar = pg.Surface((200, 30))
 
         from map import MAP
         self.MAP = MAP
@@ -97,6 +99,12 @@ class Game:
             int(SCREEN_WIDTH_TILES / 2),
             int(SCREEN_HEIGHT_TILES / 2 - 1))
 
+        # Draw energy bar
+        self.energy_bar.fill((0, 0, 128))
+        fill_width = (self.squirrel.energy / 1000) * 196
+        self.energy_bar.fill((255, 255, 0), pg.rect.Rect(2, 2, fill_width, 26))
+        self.screen.blit(self.energy_bar, (20, 466))
+
         pg.display.update()
 
     def move_squirrel(self, key):
@@ -113,6 +121,7 @@ class Game:
         newy = max(0, min(self.MAP_HEIGHT_TILES-1, newy))
         self.squirrel.x = newx
         self.squirrel.y = newy
+        self.squirrel.energy -= 10
 
     def spawn_nut(self):
         nutx = random.randint(0, self.MAP_WIDTH_TILES-1)
@@ -139,6 +148,8 @@ def main():
 
     last_nut_spawned = 0
     NUT_SPAWN_RATE = 8000
+
+    last_energy_update_timestamp = current_time_ms()
 
     doquit = False
     while not doquit:
@@ -167,6 +178,10 @@ def main():
         if current_timestamp > last_nut_spawned + NUT_SPAWN_RATE:
             game.spawn_nut()
             last_nut_spawned = current_timestamp
+
+        # Adjust squirrel energy
+        game.squirrel.energy -= int((current_timestamp - last_energy_update_timestamp) / 200)
+        last_energy_update_timestamp = current_timestamp
 
         game.render()
 
