@@ -33,11 +33,18 @@ class Squirrel:
         self.y = y
 
 
+class Nut:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+
 class Game:
     def __init__(self, screen):
         self.screen = screen
         self.assets = {}
         self.squirrel = Squirrel(14, 14)
+        self.nuts = []
 
         from map import MAP
         self.MAP = MAP
@@ -76,6 +83,15 @@ class Game:
                 elif self.MAP[mapy][mapx] == '#':
                     self._draw_image_at('tree', x, y)
 
+        # Render nuts
+        for nut in self.nuts:
+            sx = nut.x + int(SCREEN_WIDTH_TILES / 2) - self.squirrel.x
+            sy = nut.y + int(SCREEN_HEIGHT_TILES / 2 - 1) - self.squirrel.y
+            if sx < 0 or sx >= SCREEN_WIDTH_TILES or sy < 0 or sy >= SCREEN_HEIGHT_TILES:
+                continue
+            self._draw_image_at('nut', sx, sy)
+
+        # Draw squirrel
         self._draw_image_at(
             'squirrel',
             int(SCREEN_WIDTH_TILES / 2),
@@ -98,6 +114,12 @@ class Game:
         self.squirrel.x = newx
         self.squirrel.y = newy
 
+    def spawn_nut(self):
+        nutx = random.randint(0, self.MAP_WIDTH_TILES-1)
+        nuty = random.randint(0, self.MAP_HEIGHT_TILES-1)
+        nut = Nut(nutx, nuty)
+        self.nuts.append(nut)
+
 
 def current_time_ms():
     return int(time.time() * 1000)
@@ -114,6 +136,9 @@ def main():
 
     last_moved_timestamp = 0
     KEYPRESS_INTERVAL = 100
+
+    last_nut_spawned = 0
+    NUT_SPAWN_RATE = 8000
 
     doquit = False
     while not doquit:
@@ -138,6 +163,10 @@ def main():
             if keystate[pg.K_RIGHT] or keystate[pg.K_d]:
                 game.move_squirrel(Direction.RIGHT)
                 last_moved_timestamp = current_timestamp
+
+        if current_timestamp > last_nut_spawned + NUT_SPAWN_RATE:
+            game.spawn_nut()
+            last_nut_spawned = current_timestamp
 
         game.render()
 
