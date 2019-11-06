@@ -27,6 +27,10 @@ class Direction(enum.Enum):
     RIGHT = 4
 
 
+class Action(enum.Enum):
+    SPACE = 1
+
+
 class Squirrel:
     def __init__(self, x, y):
         self.x = x
@@ -49,6 +53,8 @@ class Nut:
 
 
 class Game:
+    NUT_SPAWN_RATE = 8000
+
     def __init__(self, screen):
         self.screen = screen
         self.assets = {}
@@ -61,6 +67,24 @@ class Game:
         self.MAP = MAP
         self.MAP_WIDTH_TILES = len(self.MAP[0])
         self.MAP_HEIGHT_TILES = len(self.MAP)
+
+        self.scheduled_events = []
+        self.__schedule_event(self.energy_loss, 800)
+        self.__schedule_event(self.spawn_nut, Game.NUT_SPAWN_RATE)
+
+    def __schedule_event(self, action, period):
+        event = ScheduledEvent(action, period)
+        self.scheduled_events.append(event)
+
+    def energy_loss(self, event, current_timestamp):
+        print(self.squirrel.energy)
+        self.squirrel.energy -= int((current_timestamp - event.last_timestamp) / 800)
+
+    def spawn_nut(self, event, current_timestamp):
+        nutx = random.randint(0, self.MAP_WIDTH_TILES-1)
+        nuty = random.randint(0, self.MAP_HEIGHT_TILES-1)
+        nut = Nut(nutx, nuty)
+        self.nuts[nut.id] = nut
 
     def load_assets(self):
         current_path = os.path.abspath(os.path.curdir)
@@ -116,7 +140,7 @@ class Game:
 
         pg.display.update()
 
-    def move_squirrel(self, key):
+    def move(self, key):
         newx, newy = self.squirrel.x, self.squirrel.y
         if key == Direction.UP:
             newy -= 1
@@ -132,25 +156,27 @@ class Game:
         self.squirrel.y = newy
         self.squirrel.set_energy(self.squirrel.energy - 2)
 
-    def spawn_nut(self):
-        nutx = random.randint(0, self.MAP_WIDTH_TILES-1)
-        nuty = random.randint(0, self.MAP_HEIGHT_TILES-1)
-        nut = Nut(nutx, nuty)
-        self.nuts[nut.id] = nut
+    def action(self, action):
+        if action == Action.SPACE:
+            nut_id = None
+            for nut in self.nuts.values():
+                if nut.x == self.squirrel.x and nut.y == self.squirrel.y:
+                    nut_id = nut.id
+                    self.squirrel.set_energy(self.squirrel.energy + nut.energy)
 
-    def eat_nut(self):
-        nut_id = None
-        for nut in self.nuts.values():
-            if nut.x == self.squirrel.x and nut.y == self.squirrel.y:
-                nut_id = nut.id
-                self.squirrel.set_energy(self.squirrel.energy + nut.energy)
-
-        if nut_id is not None:
-            del self.nuts[nut_id]
+            if nut_id is not None:
+                del self.nuts[nut_id]
 
 
 def current_time_ms():
     return int(time.time() * 1000)
+
+
+class ScheduledEvent:
+    def __init__(self, action, period):
+        self.action = action
+        self.period = period
+        self.last_timestamp = current_time_ms()
 
 
 def main():
@@ -162,11 +188,10 @@ def main():
     game = Game(screen)
     game.load_assets()
 
-    last_moved_timestamp = 0
-    KEYPRESS_INTERVAL = 100
+    last_move_timestamp = 0
+    MOVE_KEYPRESS_INTERVAL = 100
 
     last_nut_spawned = 0
-    NUT_SPAWN_RATE = 8000
 
     last_energy_update_timestamp = current_time_ms()
 
@@ -179,33 +204,32 @@ def main():
                 if event.key in [pg.K_q, pg.K_ESCAPE]:
                     doquit = True
                 if event.key == pg.K_SPACE:
-                    game.eat_nut()
+                    game.action(Action.SPACE)
 
         if not game.over:
             current_timestamp = current_time_ms()
-            if current_timestamp > last_moved_timestamp + KEYPRESS_INTERVAL:
+            if current_timestamp > last_move_timestamp + \
+                    MOVE_KEYPRESS_INTERVAL:
                 keystate = pg.key.get_pressed()
+                direction = None
                 if keystate[pg.K_UP] or keystate[pg.K_w]:
-                    game.move_squirrel(Direction.UP)
-                    last_moved_timestamp = current_timestamp
+                    game.move(Direction.UP)
+                    last_move_timestamp = current_timestamp
                 if keystate[pg.K_DOWN] or keystate[pg.K_s]:
-                    game.move_squirrel(Direction.DOWN)
-                    last_moved_timestamp = current_timestamp
+                    game.move(Direction.DOWN)
+                    last_move_timestamp = current_timestamp
                 if keystate[pg.K_LEFT] or keystate[pg.K_a]:
-                    game.move_squirrel(Direction.LEFT)
-                    last_moved_timestamp = current_timestamp
+                    game.move(Direction.LEFT)
+                    last_move_timestamp = current_timestamp
                 if keystate[pg.K_RIGHT] or keystate[pg.K_d]:
-                    game.move_squirrel(Direction.RIGHT)
-                    last_moved_timestamp = current_timestamp
+                    game.move(Direction.RIGHT)
+                    last_move_timestamp = current_timestamp
 
-            if current_timestamp > last_nut_spawned + NUT_SPAWN_RATE:
-                game.spawn_nut()
-                last_nut_spawned = current_timestamp
-
-            # Adjust squirrel energy
-            if current_timestamp - last_energy_update_timestamp > 800:
-                game.squirrel.energy -= int((current_timestamp - last_energy_update_timestamp) / 800)
-                last_energy_update_timestamp = current_timestamp
+            for scheduled_event in game.scheduled_events:
+                if current_timestamp > scheduled_event.last_timestamp + \
+                                       scheduled_event.period:
+                    scheduled_event.action(scheduled_event, current_timestamp)
+                    scheduled_event.last_timestamp = current_timestamp
 
             if game.squirrel.energy <= 0:
                 game.over = True
