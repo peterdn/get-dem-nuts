@@ -98,13 +98,25 @@ class Game:
                 surface = pg.image.load(f)
             except pg.error:
                 raise SystemExit(f"Failed to load asset {asset}: {pg.get_error()}")
-            self.assets[asset] = surface.convert_alpha()
+            surface = surface.convert_alpha()
+            if surface.get_width() > TILE_WIDTH:
+                self.assets[asset] = []
+                for i in range(int(surface.get_width() / TILE_WIDTH)):
+                    r = pg.rect.Rect(i*TILE_WIDTH, 0, TILE_WIDTH, TILE_HEIGHT)
+                    subsurface = surface.subsurface(r)
+                    self.assets[asset].append(subsurface)
+            else:
+                self.assets[asset] = surface.convert_alpha()
 
-    def _draw_image_at(self, image, x, y):
+    def _draw_image_at(self, image, x, y, frame=None):
         if isinstance(image, str):
             image = self.assets[image]
         px = x * TILE_WIDTH
         py = y * TILE_HEIGHT
+
+        if frame is not None:
+            image = image[frame]
+
         self.screen.blit(image, (px, py))
 
     def render(self):
@@ -132,7 +144,8 @@ class Game:
         self._draw_image_at(
             'squirrel',
             int(SCREEN_WIDTH_TILES / 2),
-            int(SCREEN_HEIGHT_TILES / 2 - 1))
+            int(SCREEN_HEIGHT_TILES / 2 - 1),
+            frame=self.squirrel.facing.value-1)
 
         # Draw energy bar
         self.energy_bar.fill((0, 0, 128))
@@ -157,11 +170,23 @@ class Game:
     def face(self, key):
         self.squirrel.facing = key
 
+    def _facing(self):
+        facingx, facingy = self.squirrel.x, self.squirrel.y
+        if self.squirrel.facing == Direction.UP:
+            return facingx, facingy-1
+        elif self.squirrel.facing == Direction.DOWN:
+            return facingx, facingy+1
+        elif self.squirrel.facing == Direction.LEFT:
+            return facingx-1, facingy
+        elif self.squirrel.facing == Direction.RIGHT:
+            return facingx+1, facingy
+
     def action(self, action):
+        facingx, facingy = self._facing()
         if action == Action.SPACE:
             nut_id = None
             for nut in self.nuts.values():
-                if nut.x == self.squirrel.x and nut.y == self.squirrel.y:
+                if nut.x == facingx and nut.y == facingy:
                     nut_id = nut.id
                     self.squirrel.set_energy(self.squirrel.energy + nut.energy)
 
@@ -175,6 +200,12 @@ class Game:
         return True
 
     def tick(self):
+        # If we're moving in a cardinal direction, face that way
+        if self.newx != self.squirrel.x and self.newy == self.squirrel.y:
+            self.squirrel.facing = Direction.LEFT if self.newx < self.squirrel.x else Direction.RIGHT
+        elif self.newy != self.squirrel.y and self.newx == self.squirrel.x:
+            self.squirrel.facing = Direction.UP if self.newy < self.squirrel.y else Direction.DOWN
+
         if self._can_move_to(self.newx, self.newy):
             if self.newx != self.squirrel.x:
                 self.squirrel.x = self.newx
