@@ -72,12 +72,13 @@ class Game:
         self._schedule_event(self.energy_loss, 800)
         self._schedule_event(self.spawn_nut, Game.NUT_SPAWN_RATE)
 
+        self.newx, self.newy = self.squirrel.x, self.squirrel.y
+
     def _schedule_event(self, action, period):
         event = ScheduledEvent(action, period)
         self.scheduled_events.append(event)
 
     def energy_loss(self, event, current_timestamp):
-        print(self.squirrel.energy)
         self.squirrel.energy -= int((current_timestamp - event.last_timestamp) / 800)
 
     def spawn_nut(self, event, current_timestamp):
@@ -141,20 +142,16 @@ class Game:
         pg.display.update()
 
     def move(self, key):
-        newx, newy = self.squirrel.x, self.squirrel.y
         if key == Direction.UP:
-            newy -= 1
+            self.newy -= 1
         elif key == Direction.DOWN:
-            newy += 1
+            self.newy += 1
         elif key == Direction.LEFT:
-            newx -= 1
+            self.newx -= 1
         elif key == Direction.RIGHT:
-            newx += 1
-        newx = max(0, min(self.MAP_WIDTH_TILES-1, newx))
-        newy = max(0, min(self.MAP_HEIGHT_TILES-1, newy))
-        self.squirrel.x = newx
-        self.squirrel.y = newy
-        self.squirrel.set_energy(self.squirrel.energy - 2)
+            self.newx += 1
+        self.newx = max(0, min(self.MAP_WIDTH_TILES-1, self.newx))
+        self.newy = max(0, min(self.MAP_HEIGHT_TILES-1, self.newy))
 
     def action(self, action):
         if action == Action.SPACE:
@@ -167,7 +164,23 @@ class Game:
             if nut_id is not None:
                 del self.nuts[nut_id]
 
+    def _can_move_to(self, x, y):
+        for nut in self.nuts.values():
+            if (x, y) == (nut.x, nut.y):
+                return False
+        return True
+
     def tick(self):
+        if self._can_move_to(self.newx, self.newy):
+            if self.newx != self.squirrel.x:
+                self.squirrel.x = self.newx
+                self.squirrel.set_energy(self.squirrel.energy - 1)
+            if self.newy != self.squirrel.y:
+                self.squirrel.y = self.newy
+                self.squirrel.set_energy(self.squirrel.energy - 1)
+        else:
+            self.newx, self.newy = self.squirrel.x, self.squirrel.y
+
         if self.squirrel.energy <= 0:
             self.over = True
 
