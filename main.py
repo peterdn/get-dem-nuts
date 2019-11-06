@@ -32,9 +32,10 @@ class Action(enum.Enum):
 
 
 class Squirrel:
-    def __init__(self, x, y):
+    def __init__(self, x, y, facing):
         self.x = x
         self.y = y
+        self.facing = facing
         self.energy = 1000
 
     def set_energy(self, energy):
@@ -58,7 +59,7 @@ class Game:
     def __init__(self, screen):
         self.screen = screen
         self.assets = {}
-        self.squirrel = Squirrel(14, 14)
+        self.squirrel = Squirrel(14, 14, Direction.DOWN)
         self.nuts = {}
         self.energy_bar = pg.Surface((200, 30))
         self.over = False
@@ -153,6 +154,9 @@ class Game:
         self.newx = max(0, min(self.MAP_WIDTH_TILES-1, self.newx))
         self.newy = max(0, min(self.MAP_HEIGHT_TILES-1, self.newy))
 
+    def face(self, key):
+        self.squirrel.facing = key
+
     def action(self, action):
         if action == Action.SPACE:
             nut_id = None
@@ -216,6 +220,14 @@ def main():
             if event.type == pg.KEYDOWN:
                 if event.key in [pg.K_q, pg.K_ESCAPE]:
                     doquit = True
+                if event.key in [pg.K_UP, pg.K_w]:
+                    game.face(Direction.UP)
+                if event.key in [pg.K_DOWN, pg.K_s]:
+                    game.face(Direction.DOWN)
+                if event.key in [pg.K_LEFT, pg.K_a]:
+                    game.face(Direction.LEFT)
+                if event.key in [pg.K_RIGHT, pg.K_d]:
+                    game.face(Direction.RIGHT)
                 if event.key == pg.K_SPACE:
                     game.action(Action.SPACE)
 
