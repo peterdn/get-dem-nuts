@@ -69,10 +69,10 @@ class Game:
         self.MAP_HEIGHT_TILES = len(self.MAP)
 
         self.scheduled_events = []
-        self.__schedule_event(self.energy_loss, 800)
-        self.__schedule_event(self.spawn_nut, Game.NUT_SPAWN_RATE)
+        self._schedule_event(self.energy_loss, 800)
+        self._schedule_event(self.spawn_nut, Game.NUT_SPAWN_RATE)
 
-    def __schedule_event(self, action, period):
+    def _schedule_event(self, action, period):
         event = ScheduledEvent(action, period)
         self.scheduled_events.append(event)
 
@@ -167,6 +167,10 @@ class Game:
             if nut_id is not None:
                 del self.nuts[nut_id]
 
+    def tick(self):
+        if self.squirrel.energy <= 0:
+            self.over = True
+
 
 def current_time_ms():
     return int(time.time() * 1000)
@@ -191,10 +195,6 @@ def main():
     last_move_timestamp = 0
     MOVE_KEYPRESS_INTERVAL = 100
 
-    last_nut_spawned = 0
-
-    last_energy_update_timestamp = current_time_ms()
-
     doquit = False
     while not doquit:
         for event in pg.event.get():
@@ -208,6 +208,7 @@ def main():
 
         if not game.over:
             current_timestamp = current_time_ms()
+
             if current_timestamp > last_move_timestamp + \
                     MOVE_KEYPRESS_INTERVAL:
                 keystate = pg.key.get_pressed()
@@ -231,8 +232,7 @@ def main():
                     scheduled_event.action(scheduled_event, current_timestamp)
                     scheduled_event.last_timestamp = current_timestamp
 
-            if game.squirrel.energy <= 0:
-                game.over = True
+            game.tick()
 
         game.render()
 
