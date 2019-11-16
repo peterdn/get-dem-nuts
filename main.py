@@ -27,6 +27,11 @@ class Direction(enum.Enum):
     RIGHT = 4
 
 
+class Rotation(enum.Enum):
+    Clockwise = 1
+    CounterClockwise = -1
+
+
 class Action(enum.Enum):
     SPACE = 1
 
@@ -204,6 +209,25 @@ class Game:
     def face(self, key):
         self.squirrel.facing = key
 
+    def rotate(self, direction):
+        # TODO: fix spritesheet and enum order to allow
+        # this to be done with modular arithmetic.
+        if direction == Rotation.Clockwise:
+            rmap = {
+                Direction.DOWN: Direction.LEFT,
+                Direction.LEFT: Direction.UP,
+                Direction.UP: Direction.RIGHT,
+                Direction.RIGHT: Direction.DOWN,
+            }
+        elif direction == Rotation.CounterClockwise:
+            rmap = {
+                Direction.DOWN: Direction.RIGHT,
+                Direction.RIGHT: Direction.UP,
+                Direction.UP: Direction.LEFT,
+                Direction.LEFT: Direction.DOWN,
+            }
+        self.squirrel.facing = rmap[self.squirrel.facing]
+
     def _facing(self):
         facingx, facingy = self.squirrel.x, self.squirrel.y
         if self.squirrel.facing == Direction.UP:
@@ -287,8 +311,12 @@ def main():
             if event.type == pg.QUIT:
                 doquit = True
             if event.type == pg.KEYDOWN:
-                if event.key in [pg.K_q, pg.K_ESCAPE]:
+                if event.key == pg.K_ESCAPE:
                     doquit = True
+                if event.key == pg.K_q:
+                    game.rotate(Rotation.CounterClockwise)
+                if event.key == pg.K_e:
+                    game.rotate(Rotation.Clockwise)
                 if event.key in [pg.K_UP, pg.K_w]:
                     game.face(Direction.UP)
                 if event.key in [pg.K_DOWN, pg.K_s]:
