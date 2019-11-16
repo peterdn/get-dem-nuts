@@ -232,9 +232,6 @@ class Game:
             return False
         if x == self.squirrel.x and y == self.squirrel.y:
             return False
-        for nut in self.nuts.values():
-            if (x, y) == (nut.x, nut.y):
-                return False
         for squirrel in self.squirrels:
             if (x, y) == (squirrel.x, squirrel.y):
                 return False
