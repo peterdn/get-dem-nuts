@@ -35,6 +35,7 @@ class Rotation(enum.Enum):
 
 class Action(enum.Enum):
     SPACE = 1
+    F = 2
 
 
 class Squirrel:
@@ -64,6 +65,7 @@ class Game:
     ENERGY_LOSS_RATE = 500
     N_SQUIRRELS = 5
     NPC_MOVE_RATE = 1000
+    N_GROUND_TILES = 30
 
     def __init__(self, screen):
         self.init_map()
@@ -95,7 +97,7 @@ class Game:
 
         for x in range(self.MAP_WIDTH_TILES):
             for y in range(self.MAP_HEIGHT_TILES):
-                self.TILES[y][x]['tileidx'] = random.randint(0, 29)
+                self.TILES[y][x]['tileidx'] = random.randint(0, self.N_GROUND_TILES-1)
 
     def _generate_squirrels(self):
         squirrels = []
@@ -270,6 +272,9 @@ class Game:
 
             if nut_id is not None:
                 del self.nuts[nut_id]
+        elif action == Action.F:
+            if facingx >= 0 and facingy >= 0 and facingx < self.MAP_WIDTH_TILES and facingy < self.MAP_HEIGHT_TILES:
+                self.TILES[facingy][facingx]['tileidx'] = random.randint(0, self.N_GROUND_TILES-1)
 
     def _can_move_to(self, x, y):
         if x < 0 or x >= self.MAP_WIDTH_TILES or y < 0 or y >= self.MAP_HEIGHT_TILES:
@@ -349,6 +354,8 @@ def main():
                     game.face(Direction.RIGHT)
                 if event.key == pg.K_SPACE:
                     game.action(Action.SPACE)
+                if event.key == pg.K_f:
+                    game.action(Action.F)
 
         if not game.over:
             current_timestamp = current_time_ms()
