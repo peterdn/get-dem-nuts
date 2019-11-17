@@ -16,7 +16,8 @@ SCREEN_WIDTH_TILES = int(SCREENRECT.width / TILE_WIDTH)
 SCREEN_HEIGHT_TILES = int(SCREENRECT.height / TILE_HEIGHT)
 
 ASSETS = [
-    "squirrel", "greysquirrel", "tree", "nut", "grass",
+    "squirrel", "greysquirrel", "tree", "nut",
+    {'name': "summerground", 'mirror': True},
 ]
 
 
@@ -65,10 +66,7 @@ class Game:
     NPC_MOVE_RATE = 1000
 
     def __init__(self, screen):
-        from map import MAP
-        self.MAP = MAP
-        self.MAP_WIDTH_TILES = len(self.MAP[0])
-        self.MAP_HEIGHT_TILES = len(self.MAP)
+        self.init_map()
 
         self.scheduled_events = []
         self._schedule_event(self.energy_loss, Game.ENERGY_LOSS_RATE)
@@ -83,6 +81,21 @@ class Game:
         self.over = False
 
         self.newx, self.newy = self.squirrel.x, self.squirrel.y
+
+        self.random_seed = time.time_ns()
+
+    def init_map(self):
+        from map import MAP
+        self.MAP = MAP
+        self.MAP_WIDTH_TILES = len(self.MAP[0])
+        self.MAP_HEIGHT_TILES = len(self.MAP)
+
+        self.TILES = [[{} for x in range(self.MAP_WIDTH_TILES)]
+                      for y in range(self.MAP_HEIGHT_TILES)]
+
+        for x in range(self.MAP_WIDTH_TILES):
+            for y in range(self.MAP_HEIGHT_TILES):
+                self.TILES[y][x]['tileidx'] = random.randint(0, 29)
 
     def _generate_squirrels(self):
         squirrels = []
@@ -120,20 +133,23 @@ class Game:
         assets_path = os.path.join(current_path, 'assets')
         print("Loading assets...")
         for asset in ASSETS:
-            f = os.path.join(assets_path, f"{asset}.png")
+            asset_filename = asset if isinstance(asset, str) else asset['name']
+            f = os.path.join(assets_path, f"{asset_filename}.png")
             try:
                 surface = pg.image.load(f)
             except pg.error:
-                raise SystemExit(f"Failed to load asset {asset}: {pg.get_error()}")
+                raise SystemExit(f"Failed to load asset {asset_filename}: {pg.get_error()}")
             surface = surface.convert_alpha()
             if surface.get_width() > TILE_WIDTH:
-                self.assets[asset] = []
+                self.assets[asset_filename] = []
                 for i in range(int(surface.get_width() / TILE_WIDTH)):
                     r = pg.rect.Rect(i*TILE_WIDTH, 0, TILE_WIDTH, TILE_HEIGHT)
                     subsurface = surface.subsurface(r)
-                    self.assets[asset].append(subsurface)
+                    self.assets[asset_filename].append(subsurface)
+                    if isinstance(asset, dict) and asset['mirror']:
+                        self.assets[asset_filename].append(pg.transform.flip(subsurface, True, False))
             else:
-                self.assets[asset] = surface.convert_alpha()
+                self.assets[asset_filename] = surface.convert_alpha()
 
     def _draw_image_at(self, image, x, y, frame=None):
         if isinstance(image, str):
@@ -146,18 +162,22 @@ class Game:
 
         self.screen.blit(image, (px, py))
 
-    def render(self):
-        self.screen.fill((0, 0, 0))
-
+    def render_map(self):
         for x in range(SCREEN_WIDTH_TILES):
             for y in range(SCREEN_HEIGHT_TILES):
                 (mapx, mapy) = (self.squirrel.x + x - int(SCREEN_WIDTH_TILES / 2), self.squirrel.y + y - int(SCREEN_HEIGHT_TILES / 2 - 1))
                 if mapx < 0 or mapx >= self.MAP_WIDTH_TILES or mapy < 0 or mapy >= self.MAP_HEIGHT_TILES:
                     continue
                 if self.MAP[mapy][mapx] == '.':
-                    self._draw_image_at('grass', x, y)
+                    frame = self.TILES[mapy][mapx]['tileidx']
+                    self._draw_image_at('summerground', x, y, frame=frame)
                 elif self.MAP[mapy][mapx] == '#':
                     self._draw_image_at('tree', x, y)
+
+    def render(self):
+        self.screen.fill((0, 0, 0))
+
+        self.render_map()
 
         # Render nuts
         for nut in self.nuts.values():
@@ -298,6 +318,8 @@ def main():
 
     screen = pg.display.set_mode(SCREENRECT.size, 0)
     clock = pg.time.Clock()
+
+    pg.display.set_caption('get dem nuts')
 
     game = Game(screen)
     game.load_assets()
