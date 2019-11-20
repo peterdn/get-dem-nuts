@@ -16,7 +16,7 @@ SCREEN_WIDTH_TILES = int(SCREENRECT.width / TILE_WIDTH)
 SCREEN_HEIGHT_TILES = int(SCREENRECT.height / TILE_HEIGHT)
 
 ASSETS = [
-    "squirrel", "greysquirrel", "tree", "nut",
+    "squirrel", "greysquirrel", "tree", "nut", "water",
     {'name': "summerground", 'mirror': True},
 ]
 
@@ -169,15 +169,15 @@ class Game:
             for y in range(SCREEN_HEIGHT_TILES):
                 (mapx, mapy) = (self.squirrel.x + x - int(SCREEN_WIDTH_TILES / 2), self.squirrel.y + y - int(SCREEN_HEIGHT_TILES / 2 - 1))
                 if mapx < 0 or mapx >= self.MAP_WIDTH_TILES or mapy < 0 or mapy >= self.MAP_HEIGHT_TILES:
-                    continue
-                if self.MAP[mapy][mapx] == '.':
+                    self._draw_image_at('water', x, y)
+                elif self.MAP[mapy][mapx] == '.':
                     frame = self.TILES[mapy][mapx]['tileidx']
                     self._draw_image_at('summerground', x, y, frame=frame)
                 elif self.MAP[mapy][mapx] == '#':
                     self._draw_image_at('tree', x, y)
 
     def render(self):
-        self.screen.fill((0, 0, 0))
+        self.screen.fill((30, 182, 202))
 
         self.render_map()
 
