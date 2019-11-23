@@ -1,3 +1,4 @@
+from abc import ABC
 import functools
 import math
 from queue import PriorityQueue
@@ -5,9 +6,10 @@ from queue import PriorityQueue
 sign = functools.partial(math.copysign, 1)
 
 
-class NPC:
+class NPC(ABC):
     def __init__(self):
-        self.x, self.y = 0, 0
+        self.x = 0
+        self.y = 0
 
 
 def find_path(fromx, fromy, tox, toy, impassable=None):
