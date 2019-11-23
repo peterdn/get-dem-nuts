@@ -97,7 +97,6 @@ def find_path_astar(map, fromx, fromy, tox, toy, impassable=None):
         (p, (cx, cy)) = fringe.get()
         if (cx, cy) == (tox, toy):
             break
-        print(f"Popped {(cx, cy)}")
         ss = successors(map, cx, cy, impassable)
         for (sx, sy) in ss:
             if not visited[sy][sx]:
