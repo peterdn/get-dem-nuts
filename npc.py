@@ -3,6 +3,8 @@ import functools
 import math
 from queue import PriorityQueue
 
+from geometry import Point
+
 sign = functools.partial(math.copysign, 1)
 
 
@@ -12,7 +14,7 @@ class NPC(ABC):
         self.y = 0
 
 
-def successors(map, x, y, impassable=None):
+def successors(map, src, impassable=None):
     if impassable is None:
         impassable = ''
 
@@ -20,15 +22,14 @@ def successors(map, x, y, impassable=None):
     width = len(map[0])
 
     def valid_successor(p):
-        (px, py) = p
-        if px == x and py == y:
+        if p.x == src.x and p.y == src.y:
             return False
-        if px < 0 or py < 0 or px >= width or py >= height:
+        if p.x < 0 or p.y < 0 or p.x >= width or p.y >= height:
             return False
-        return map[py][px] not in impassable
+        return map[p.y][p.x] not in impassable
 
-    successors = [(sx, sy) for sx in range(x-1, x+2)
-                  for sy in range(y-1, y+2)]
+    successors = [Point(x, y) for x in range(src.x-1, src.x+2)
+                  for y in range(src.y-1, src.y+2)]
 
     successors = list(filter(valid_successor, successors))
     return successors
@@ -56,7 +57,7 @@ def reconstruct_path(visited, fromx, fromy, tox, toy):
     return path
 
 
-def find_path_astar(map, fromx, fromy, tox, toy, impassable=None):
+def find_path_astar(map, src, dst, impassable=None):
     if impassable is None:
         impassable = ''
 
@@ -64,20 +65,20 @@ def find_path_astar(map, fromx, fromy, tox, toy, impassable=None):
     width = len(map[0])
 
     visited = [[False for x in range(width)] for y in range(height)]
-    visit(visited, fromx, fromy)
+    visit(visited, src.x, src.y)
     fringe = PriorityQueue()
-    fringe.put((0, (fromx, fromy)))
+    fringe.put((0, (src.x, src.y)))
     while not fringe.empty():
         (p, (cx, cy)) = fringe.get()
-        if (cx, cy) == (tox, toy):
+        if (cx, cy) == (dst.x, dst.y):
             break
-        ss = successors(map, cx, cy, impassable)
-        for (sx, sy) in ss:
-            if not visited[sy][sx]:
-                visit(visited, sx, sy, cx, cy)
-                hcost = visited[sy][sx]['cost'] + dist(sx, sy, tox, toy)
-                fringe.put((hcost, (sx, sy)))
-    if (cx, cy) == (tox, toy):
-        return reconstruct_path(visited, fromx, fromy, tox, toy)
+        succs = successors(map, Point(cx, cy), impassable)
+        for succ in succs:
+            if not visited[succ.y][succ.x]:
+                visit(visited, succ.x, succ.y, cx, cy)
+                hcost = visited[succ.y][succ.x]['cost'] + dist(succ.x, succ.y, dst.x, dst.y)
+                fringe.put((hcost, (succ.x, succ.y)))
+    if (cx, cy) == (dst.x, dst.y):
+        return reconstruct_path(visited, src.x, src.y, dst.x, dst.y)
     else:
         return None

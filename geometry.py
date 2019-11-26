@@ -6,6 +6,13 @@ class Point:
         self.x = x
         self.y = y
 
+    def __eq__(self, other):
+        return isinstance(other, Point) and \
+            (self.x, self.y) == (other.x, other.y)
+
+    def __hash__(self):
+        return hash((self.x, self.y))
+
 
 class Direction(enum.Enum):
     UP = 1

@@ -7,7 +7,6 @@ import time
 import pygame as pg
 
 from geometry import Direction, Rotation
-from npc import find_path_astar
 from squirrel import Squirrel
 
 
