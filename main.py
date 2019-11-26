@@ -8,6 +8,7 @@ import pygame as pg
 
 from geometry import Direction, Rotation
 from squirrel import Squirrel
+from world import World
 
 
 SCREEN_WIDTH = 672
@@ -48,7 +49,7 @@ class Game:
     N_GROUND_TILES = 30
 
     def __init__(self, screen):
-        self.init_map()
+        self.world = World(self.N_GROUND_TILES)
 
         self.scheduled_events = []
         self._schedule_event(self.energy_loss, Game.ENERGY_LOSS_RATE)
@@ -66,24 +67,11 @@ class Game:
 
         self.random_seed = time.time_ns()
 
-    def init_map(self):
-        from map import MAP
-        self.MAP = MAP
-        self.MAP_WIDTH_TILES = len(self.MAP[0])
-        self.MAP_HEIGHT_TILES = len(self.MAP)
-
-        self.TILES = [[{} for x in range(self.MAP_WIDTH_TILES)]
-                      for y in range(self.MAP_HEIGHT_TILES)]
-
-        for x in range(self.MAP_WIDTH_TILES):
-            for y in range(self.MAP_HEIGHT_TILES):
-                self.TILES[y][x]['tileidx'] = random.randint(0, self.N_GROUND_TILES-1)
-
     def _generate_squirrels(self):
         squirrels = []
         for i in range(Game.N_SQUIRRELS):
-            sx = random.randint(0, self.MAP_WIDTH_TILES-1)
-            sy = random.randint(0, self.MAP_HEIGHT_TILES-1)
+            sx = random.randint(0, self.world.WIDTH_TILES-1)
+            sy = random.randint(0, self.world.HEIGHT_TILES-1)
             squirrel = Squirrel(sx, sy, Direction.RIGHT)
             squirrels.append(squirrel)
 
@@ -98,8 +86,8 @@ class Game:
         self.squirrel.energy -= int((current_timestamp - event.last_timestamp) / self.ENERGY_LOSS_RATE)
 
     def spawn_nut(self, event, current_timestamp):
-        nutx = random.randint(0, self.MAP_WIDTH_TILES-1)
-        nuty = random.randint(0, self.MAP_HEIGHT_TILES-1)
+        nutx = random.randint(0, self.world.WIDTH_TILES-1)
+        nuty = random.randint(0, self.world.HEIGHT_TILES-1)
         nut = Nut(nutx, nuty)
         self.nuts[nut.id] = nut
 
@@ -145,12 +133,12 @@ class Game:
         for x in range(SCREEN_WIDTH_TILES):
             for y in range(SCREEN_HEIGHT_TILES):
                 (mapx, mapy) = (self.squirrel.x + x - int(SCREEN_WIDTH_TILES / 2), self.squirrel.y + y - int(SCREEN_HEIGHT_TILES / 2 - 1))
-                if mapx < 0 or mapx >= self.MAP_WIDTH_TILES or mapy < 0 or mapy >= self.MAP_HEIGHT_TILES:
+                if mapx < 0 or mapx >= self.world.WIDTH_TILES or mapy < 0 or mapy >= self.world.HEIGHT_TILES:
                     self._draw_image_at('water', x, y)
-                elif self.MAP[mapy][mapx] == '.':
-                    frame = self.TILES[mapy][mapx]['tileidx']
+                elif self.world.MAP[mapy][mapx] == '.':
+                    frame = self.world.GROUND_LAYER[mapy][mapx]['tileidx']
                     self._draw_image_at('summerground', x, y, frame=frame)
-                elif self.MAP[mapy][mapx] == '#':
+                elif self.world.MAP[mapy][mapx] == '#':
                     self._draw_image_at('tree', x, y)
 
     def render(self):
@@ -198,8 +186,8 @@ class Game:
             x -= 1
         elif direction == Direction.RIGHT:
             x += 1
-        x = max(0, min(self.MAP_WIDTH_TILES-1, x))
-        y = max(0, min(self.MAP_HEIGHT_TILES-1, y))
+        x = max(0, min(self.world.WIDTH_TILES-1, x))
+        y = max(0, min(self.world.HEIGHT_TILES-1, y))
         return x, y
 
     def move(self, key):
@@ -250,11 +238,11 @@ class Game:
             if nut_id is not None:
                 del self.nuts[nut_id]
         elif action == Action.F:
-            if facingx >= 0 and facingy >= 0 and facingx < self.MAP_WIDTH_TILES and facingy < self.MAP_HEIGHT_TILES:
-                self.TILES[facingy][facingx]['tileidx'] = random.randint(0, self.N_GROUND_TILES-1)
+            if facingx >= 0 and facingy >= 0 and facingx < self.world.WIDTH_TILES and facingy < self.world.HEIGHT_TILES:
+                self.world.GROUND_LAYER[facingy][facingx]['tileidx'] = random.randint(0, self.N_GROUND_TILES-1)
 
     def _can_move_to(self, x, y):
-        if x < 0 or x >= self.MAP_WIDTH_TILES or y < 0 or y >= self.MAP_HEIGHT_TILES:
+        if x < 0 or x >= self.world.WIDTH_TILES or y < 0 or y >= self.world.HEIGHT_TILES:
             return False
         if x == self.squirrel.x and y == self.squirrel.y:
             return False

@@ -45,7 +45,7 @@ class Squirrel(NPC):
         elif self.state == Squirrel.SquirrelState.GETTING_NUT:
             target_nut = game.nuts.get(self.target_nut_id)
             if target_nut is not None:
-                path = find_path_astar(game.MAP, self, target_nut)
+                path = find_path_astar(game.world.MAP, self, target_nut)
                 if path is not None and len(path) > 1:
                     newx, newy = path[1]
                     if game._can_move_to(newx, newy):
