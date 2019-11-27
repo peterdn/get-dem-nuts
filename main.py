@@ -250,6 +250,8 @@ class Game:
             energy_cost = pdist(self.new_pos, self.world.squirrel.pos)
             self.world.squirrel.set_energy(self.world.squirrel.energy - energy_cost)
             self.world.squirrel.pos = self.new_pos
+        else:
+            self.new_pos = self.world.squirrel.pos
 
         if self.world.squirrel.energy <= 0:
             self.over = True
