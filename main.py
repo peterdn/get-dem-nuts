@@ -6,7 +6,8 @@ import time
 
 import pygame as pg
 
-from geometry import Direction, Rotation
+from geometry import Direction, pdist, Point, Rotation
+from map import MAP
 from squirrel import Squirrel
 from world import World
 
@@ -34,8 +35,7 @@ class Nut:
     __next_id = 1
 
     def __init__(self, x, y):
-        self.x = x
-        self.y = y
+        self.pos = Point(x, y)
         self.id = Nut.__next_id
         Nut.__next_id += 1
         self.energy = 200
@@ -49,7 +49,7 @@ class Game:
     N_GROUND_TILES = 30
 
     def __init__(self, screen):
-        self.world = World(self.N_GROUND_TILES)
+        self.world = World(MAP, self.N_GROUND_TILES)
 
         self.scheduled_events = []
         self._schedule_event(self.energy_loss, Game.ENERGY_LOSS_RATE)
@@ -57,22 +57,20 @@ class Game:
 
         self.screen = screen
         self.assets = {}
-        self.squirrel = Squirrel(14, 14, Direction.DOWN)
+        self.squirrel = Squirrel(Point(14, 14), Direction.DOWN)
         self.nuts = {}
         self.squirrels = self._generate_squirrels()
         self.energy_bar = pg.Surface((200, 30))
         self.over = False
 
-        self.newx, self.newy = self.squirrel.x, self.squirrel.y
+        self.new_pos = Point(self.squirrel.pos.x, self.squirrel.pos.y)
 
         self.random_seed = time.time_ns()
 
     def _generate_squirrels(self):
         squirrels = []
         for i in range(Game.N_SQUIRRELS):
-            sx = random.randint(0, self.world.WIDTH_TILES-1)
-            sy = random.randint(0, self.world.HEIGHT_TILES-1)
-            squirrel = Squirrel(sx, sy, Direction.RIGHT)
+            squirrel = Squirrel(self.world.random_point(), Direction.RIGHT)
             squirrels.append(squirrel)
 
         self._schedule_event(self.tick_squirrels, Game.NPC_MOVE_RATE)
@@ -132,7 +130,7 @@ class Game:
     def render_map(self):
         for x in range(SCREEN_WIDTH_TILES):
             for y in range(SCREEN_HEIGHT_TILES):
-                (mapx, mapy) = (self.squirrel.x + x - int(SCREEN_WIDTH_TILES / 2), self.squirrel.y + y - int(SCREEN_HEIGHT_TILES / 2 - 1))
+                (mapx, mapy) = (self.squirrel.pos.x + x - int(SCREEN_WIDTH_TILES / 2), self.squirrel.pos.y + y - int(SCREEN_HEIGHT_TILES / 2 - 1))
                 if mapx < 0 or mapx >= self.world.WIDTH_TILES or mapy < 0 or mapy >= self.world.HEIGHT_TILES:
                     self._draw_image_at('water', x, y)
                 elif self.world.MAP[mapy][mapx] == '.':
@@ -148,16 +146,16 @@ class Game:
 
         # Render nuts
         for nut in self.nuts.values():
-            sx = nut.x + int(SCREEN_WIDTH_TILES / 2) - self.squirrel.x
-            sy = nut.y + int(SCREEN_HEIGHT_TILES / 2 - 1) - self.squirrel.y
+            sx = nut.pos.x + int(SCREEN_WIDTH_TILES / 2) - self.squirrel.pos.x
+            sy = nut.pos.y + int(SCREEN_HEIGHT_TILES / 2 - 1) - self.squirrel.pos.y
             if sx < 0 or sx >= SCREEN_WIDTH_TILES or sy < 0 or sy >= SCREEN_HEIGHT_TILES:
                 continue
             self._draw_image_at('nut', sx, sy)
 
         # Draw other squirrels
         for squirrel in self.squirrels:
-            sx = squirrel.x + int(SCREEN_WIDTH_TILES / 2) - self.squirrel.x
-            sy = squirrel.y + int(SCREEN_HEIGHT_TILES / 2 - 1) - self.squirrel.y
+            sx = squirrel.pos.x + int(SCREEN_WIDTH_TILES / 2) - self.squirrel.pos.x
+            sy = squirrel.pos.y + int(SCREEN_HEIGHT_TILES / 2 - 1) - self.squirrel.pos.y
             if sx < 0 or sx >= SCREEN_WIDTH_TILES or sy < 0 or sy >= SCREEN_HEIGHT_TILES:
                 continue
             self._draw_image_at('greysquirrel', sx, sy, frame=squirrel.facing.value-1)
@@ -177,7 +175,8 @@ class Game:
 
         pg.display.update()
 
-    def _move_in_direction(self, x, y, direction):
+    def _move_in_direction(self, pos, direction):
+        x, y = pos.x, pos.y
         if direction == Direction.UP:
             y -= 1
         elif direction == Direction.DOWN:
@@ -186,12 +185,12 @@ class Game:
             x -= 1
         elif direction == Direction.RIGHT:
             x += 1
-        x = max(0, min(self.world.WIDTH_TILES-1, x))
-        y = max(0, min(self.world.HEIGHT_TILES-1, y))
-        return x, y
+        x = max(0, min(self.world.WIDTH_TILES - 1, x))
+        y = max(0, min(self.world.HEIGHT_TILES - 1, y))
+        return Point(x, y)
 
     def move(self, key):
-        self.newx, self.newy = self._move_in_direction(self.newx, self.newy, key)
+        self.new_pos = self._move_in_direction(self.new_pos, key)
 
     def face(self, key):
         self.squirrel.facing = key
@@ -216,7 +215,7 @@ class Game:
         self.squirrel.facing = rmap[self.squirrel.facing]
 
     def _facing(self):
-        facingx, facingy = self.squirrel.x, self.squirrel.y
+        facingx, facingy = self.squirrel.pos.x, self.squirrel.pos.y
         if self.squirrel.facing == Direction.UP:
             return facingx, facingy-1
         elif self.squirrel.facing == Direction.DOWN:
@@ -231,7 +230,7 @@ class Game:
         if action == Action.SPACE:
             nut_id = None
             for nut in self.nuts.values():
-                if nut.x == facingx and nut.y == facingy:
+                if nut.pos.x == facingx and nut.pos.y == facingy:
                     nut_id = nut.id
                     self.squirrel.set_energy(self.squirrel.energy + nut.energy)
 
@@ -241,32 +240,29 @@ class Game:
             if facingx >= 0 and facingy >= 0 and facingx < self.world.WIDTH_TILES and facingy < self.world.HEIGHT_TILES:
                 self.world.GROUND_LAYER[facingy][facingx]['tileidx'] = random.randint(0, self.N_GROUND_TILES-1)
 
-    def _can_move_to(self, x, y):
-        if x < 0 or x >= self.world.WIDTH_TILES or y < 0 or y >= self.world.HEIGHT_TILES:
+    def _can_move_to(self, pos):
+        if pos.x < 0 or pos.x >= self.world.WIDTH_TILES or pos.y < 0 or pos.y >= self.world.HEIGHT_TILES:
             return False
-        if x == self.squirrel.x and y == self.squirrel.y:
+        if pos == self.squirrel.pos:
             return False
         for squirrel in self.squirrels:
-            if (x, y) == (squirrel.x, squirrel.y):
+            if pos == squirrel.pos:
                 return False
         return True
 
     def tick(self):
         # If we're moving in a cardinal direction, face that way
-        if self.newx != self.squirrel.x and self.newy == self.squirrel.y:
-            self.squirrel.facing = Direction.LEFT if self.newx < self.squirrel.x else Direction.RIGHT
-        elif self.newy != self.squirrel.y and self.newx == self.squirrel.x:
-            self.squirrel.facing = Direction.UP if self.newy < self.squirrel.y else Direction.DOWN
+        if self.new_pos.x != self.squirrel.pos.x and self.new_pos.y == self.squirrel.pos.y:
+            self.squirrel.facing = Direction.LEFT if self.new_pos.x < self.squirrel.pos.x else Direction.RIGHT
+        elif self.new_pos.y != self.squirrel.pos.y and self.new_pos.x == self.squirrel.pos.x:
+            self.squirrel.facing = Direction.UP if self.new_pos.y < self.squirrel.pos.y else Direction.DOWN
 
-        if self._can_move_to(self.newx, self.newy):
-            if self.newx != self.squirrel.x:
-                self.squirrel.x = self.newx
-                self.squirrel.set_energy(self.squirrel.energy - 1)
-            if self.newy != self.squirrel.y:
-                self.squirrel.y = self.newy
-                self.squirrel.set_energy(self.squirrel.energy - 1)
-        else:
-            self.newx, self.newy = self.squirrel.x, self.squirrel.y
+        if self._can_move_to(self.new_pos):
+            energy_cost = pdist(self.new_pos, self.squirrel.pos)
+            self.squirrel.set_energy(self.squirrel.energy - energy_cost)
+            self.squirrel.pos = self.new_pos
+        # else:
+        #     self.new_pos.x, self.new_pos.y = self.squirrel.pos.x, self.squirrel.pos.y
 
         if self.squirrel.energy <= 0:
             self.over = True

@@ -3,7 +3,7 @@ import functools
 import math
 from queue import PriorityQueue
 
-from geometry import Point
+from geometry import dist, Point
 
 sign = functools.partial(math.copysign, 1)
 
@@ -35,50 +35,44 @@ def successors(map, src, impassable=None):
     return successors
 
 
-def visit(visited, x, y, parentx=None, parenty=None):
-    visited[y][x] = {}
-    visited[y][x]['cost'] = 0
-    visited[y][x]['parent'] = (parentx, parenty)
-    if parentx is not None and parenty is not None:
-        visited[y][x]['cost'] = visited[parenty][parentx]['cost'] + 1
+def visit(visited, pos, parent=None):
+    visited[pos.y][pos.x] = {}
+    visited[pos.y][pos.x]['cost'] = 0
+    visited[pos.y][pos.x]['parent'] = parent
+    if parent is not None:
+        visited[pos.y][pos.x]['cost'] = visited[parent.y][parent.x]['cost'] + 1
 
 
-def dist(x, y, tx, ty):
-    return math.sqrt((x - tx)**2 + (y - ty)**2)
-
-
-def reconstruct_path(visited, fromx, fromy, tox, toy):
-    (cx, cy) = (tox, toy)
-    path = [(cx, cy)]
-    while (cx, cy) != (fromx, fromy):
-        (cx, cy) = visited[cy][cx]['parent']
-        path.append((cx, cy))
+def reconstruct_path(visited, src, dst):
+    pos = Point(dst.x, dst.y)
+    path = [pos]
+    while pos != src:
+        pos = visited[pos.y][pos.x]['parent']
+        path.append(pos)
     path.reverse()
     return path
 
 
-def find_path_astar(map, src, dst, impassable=None):
+def find_path_astar(world, src, dst, impassable=None):
     if impassable is None:
         impassable = ''
 
-    height = len(map)
-    width = len(map[0])
-
-    visited = [[False for x in range(width)] for y in range(height)]
-    visit(visited, src.x, src.y)
+    visited = [[False for x in range(world.WIDTH_TILES)]
+               for y in range(world.HEIGHT_TILES)]
+    visit(visited, src)
     fringe = PriorityQueue()
-    fringe.put((0, (src.x, src.y)))
+    fringe.put((0, src))
     while not fringe.empty():
-        (p, (cx, cy)) = fringe.get()
-        if (cx, cy) == (dst.x, dst.y):
+        (_priority, pos) = fringe.get()
+        if pos == dst:
             break
-        succs = successors(map, Point(cx, cy), impassable)
+        succs = successors(world.MAP, pos, impassable)
         for succ in succs:
             if not visited[succ.y][succ.x]:
-                visit(visited, succ.x, succ.y, cx, cy)
+                visit(visited, succ, pos)
                 hcost = visited[succ.y][succ.x]['cost'] + dist(succ.x, succ.y, dst.x, dst.y)
-                fringe.put((hcost, (succ.x, succ.y)))
-    if (cx, cy) == (dst.x, dst.y):
-        return reconstruct_path(visited, src.x, src.y, dst.x, dst.y)
+                fringe.put((hcost, succ))
+    if pos == dst:
+        return reconstruct_path(visited, src, dst)
     else:
         return None
