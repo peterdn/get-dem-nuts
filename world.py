@@ -36,4 +36,7 @@ class World:
         for squirrel in self.squirrels:
             if pos == squirrel.pos:
                 return False
+        for nut in self.nuts.values():
+            if pos == nut.pos:
+                return False
         return True
