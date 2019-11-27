@@ -32,7 +32,6 @@ class Squirrel(NPC):
             if p <= Squirrel.GET_NUT_PROBABILTY:
                 self.state = Squirrel.SquirrelState.GETTING_NUT
                 self.target_nut_id = list(game.nuts.keys())[random.randrange(0, len(game.nuts))]
-                print(f"Squirrel {self.id} getting nut {self.target_nut_id}")
 
     def tick(self, game):
         self._randomly_target_nut(game)
@@ -53,10 +52,7 @@ class Squirrel(NPC):
                     self.face_towards(path[1])
                     del game.nuts[self.target_nut_id]
                     self.state = Squirrel.SquirrelState.RANDOM
-                    print(f"Squrrel {self.id} ate nut {self.target_nut_id}")
                 else:
-                    print(f"Squrrel {self.id} failed to get nut {self.target_nut_id}: no path to nut")
                     self.state = Squirrel.SquirrelState.RANDOM
             else:
-                print(f"Squrrel {self.id} failed to get nut {self.target_nut_id}: nut no longer exists")
                 self.state = Squirrel.SquirrelState.RANDOM
