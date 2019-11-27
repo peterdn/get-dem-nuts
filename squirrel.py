@@ -14,11 +14,10 @@ class Squirrel(NPC):
         RANDOM = 1
         GETTING_NUT = 2
 
-    def __init__(self, x, y, facing):
+    def __init__(self, pos, facing):
         self.id = Squirrel.__next_id
         Squirrel.__next_id += 1
-        self.x = x
-        self.y = y
+        self.pos = pos
         self.facing = facing
         self.energy = 1000
         self.state = Squirrel.SquirrelState.RANDOM
@@ -39,18 +38,17 @@ class Squirrel(NPC):
         self._randomly_target_nut(game)
         if self.state == Squirrel.SquirrelState.RANDOM:
             self.facing = Direction(random.randint(1, 4))
-            newx, newy = game._move_in_direction(self.x, self.y, self.facing)
-            if game._can_move_to(newx, newy):
-                self.x, self.y = newx, newy
+            new_pos = game._move_in_direction(self.pos, self.facing)
+            if game._can_move_to(new_pos):
+                self.pos = new_pos
         elif self.state == Squirrel.SquirrelState.GETTING_NUT:
             target_nut = game.nuts.get(self.target_nut_id)
             if target_nut is not None:
-                path = find_path_astar(game.MAP, self.x, self.y,
-                                       target_nut.x, target_nut.y)
+                path = find_path_astar(game.world, self.pos, target_nut.pos)
                 if path is not None and len(path) > 1:
-                    newx, newy = path[1]
-                    if game._can_move_to(newx, newy):
-                        self.x, self.y = newx, newy
+                    new_pos = path[1]
+                    if game._can_move_to(new_pos):
+                        self.pos = new_pos
                 elif len(path) == 1:
                     del game.nuts[self.target_nut_id]
                     self.state = Squirrel.SquirrelState.RANDOM
@@ -61,4 +59,3 @@ class Squirrel(NPC):
             else:
                 print(f"Squrrel {self.id} failed to get nut {self.target_nut_id}: nut no longer exists")
                 self.state = Squirrel.SquirrelState.RANDOM
-
