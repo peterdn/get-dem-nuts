@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 import functools
 import math
 from queue import PriorityQueue
@@ -25,6 +25,15 @@ class Character(ABC):
             self.facing = Direction.RIGHT
         elif dst.x < self.pos.x:
             self.facing = Direction.LEFT
+
+    @abstractmethod
+    def _can_move_to(self, world, pos):
+        pass
+
+    def can_move_to(self, world, pos):
+        if not world.can_move_to(pos):
+            return False
+        return self._can_move_to(world, pos)
 
 
 class NPC(Character):

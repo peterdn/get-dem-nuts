@@ -27,32 +27,35 @@ class Squirrel(NPC):
         self.energy = min(1000, max(0, energy))
 
     def _randomly_target_nut(self, game):
-        if self.state == Squirrel.SquirrelState.RANDOM and game.nuts:
+        if self.state == Squirrel.SquirrelState.RANDOM and game.world.nuts:
             p = random.random()
             if p <= Squirrel.GET_NUT_PROBABILTY:
                 self.state = Squirrel.SquirrelState.GETTING_NUT
-                self.target_nut_id = list(game.nuts.keys())[random.randrange(0, len(game.nuts))]
+                self.target_nut_id = list(game.world.nuts.keys())[random.randrange(0, len(game.world.nuts))]
 
     def tick(self, game):
         self._randomly_target_nut(game)
         if self.state == Squirrel.SquirrelState.RANDOM:
             self.facing = Direction(random.randint(1, 4))
             new_pos = game._move_in_direction(self.pos, self.facing)
-            if game._can_move_to(new_pos):
+            if self.can_move_to(game.world, new_pos):
                 self.pos = new_pos
         elif self.state == Squirrel.SquirrelState.GETTING_NUT:
-            target_nut = game.nuts.get(self.target_nut_id)
+            target_nut = game.world.nuts.get(self.target_nut_id)
             if target_nut is not None:
                 path = find_path_astar(game.world, self.pos, target_nut.pos)
                 if path is not None and len(path) > 2:
                     new_pos = path[1]
-                    if game._can_move_to(new_pos):
+                    if self.can_move_to(game.world, new_pos):
                         self.move_to(new_pos)
                 elif len(path) == 2:
                     self.face_towards(path[1])
-                    del game.nuts[self.target_nut_id]
+                    del game.world.nuts[self.target_nut_id]
                     self.state = Squirrel.SquirrelState.RANDOM
                 else:
                     self.state = Squirrel.SquirrelState.RANDOM
             else:
                 self.state = Squirrel.SquirrelState.RANDOM
+
+    def _can_move_to(self, world, pos):
+        return True
