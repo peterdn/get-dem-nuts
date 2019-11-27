@@ -3,15 +3,28 @@ import functools
 import math
 from queue import PriorityQueue
 
-from geometry import dist, Point
+from geometry import Direction, dist, Point
 
 sign = functools.partial(math.copysign, 1)
 
 
 class NPC(ABC):
     def __init__(self):
-        self.x = 0
-        self.y = 0
+        pass
+
+    def move_to(self, dst):
+        self.face_towards(dst)
+        self.pos = dst
+
+    def face_towards(self, dst):
+        if dst.y > self.pos.y:
+            self.facing = Direction.DOWN
+        elif dst.y < self.pos.y:
+            self.facing = Direction.UP
+        elif dst.x > self.pos.x:
+            self.facing = Direction.RIGHT
+        elif dst.x < self.pos.x:
+            self.facing = Direction.LEFT
 
 
 def successors(map, src, impassable=None):
