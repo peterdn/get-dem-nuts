@@ -8,7 +8,7 @@ from geometry import Direction, dist, Point
 sign = functools.partial(math.copysign, 1)
 
 
-class NPC(ABC):
+class Character(ABC):
     def __init__(self):
         pass
 
@@ -25,6 +25,11 @@ class NPC(ABC):
             self.facing = Direction.RIGHT
         elif dst.x < self.pos.x:
             self.facing = Direction.LEFT
+
+
+class NPC(Character):
+    def __init__(self):
+        pass
 
 
 def successors(map, src, impassable=None):
