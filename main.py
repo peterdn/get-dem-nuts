@@ -49,7 +49,7 @@ class Game:
     N_SQUIRRELS = 5
     N_FOXES = 2
     NPC_MOVE_RATE = 1000
-    FOX_MOVE_RATE = 100
+    FOX_MOVE_RATE = 150
     N_GROUND_TILES = 30
 
     def __init__(self, screen):
