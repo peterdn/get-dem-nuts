@@ -7,6 +7,7 @@ import time
 import pygame as pg
 
 from geometry import Direction, pdist, Point, Rotation
+from fox import Fox
 from map import MAP
 from squirrel import Squirrel
 from world import World
@@ -21,7 +22,7 @@ SCREEN_WIDTH_TILES = int(SCREENRECT.width / TILE_WIDTH)
 SCREEN_HEIGHT_TILES = int(SCREENRECT.height / TILE_HEIGHT)
 
 ASSETS = [
-    "squirrel", "greysquirrel", "tree", "nut", "water",
+    "squirrel", "greysquirrel", "tree", "nut", "water", "fox",
     {'name': "summerground", 'mirror': True},
 ]
 
@@ -45,7 +46,9 @@ class Game:
     NUT_SPAWN_RATE = 8000
     ENERGY_LOSS_RATE = 500
     N_SQUIRRELS = 5
+    N_FOXES = 2
     NPC_MOVE_RATE = 1000
+    FOX_MOVE_RATE = 100
     N_GROUND_TILES = 30
 
     def __init__(self, screen):
@@ -53,6 +56,7 @@ class Game:
 
         self.world = World(MAP, self.N_GROUND_TILES)
         self._generate_squirrels()
+        self.__generate_foxes()
 
         self._schedule_event(self.energy_loss, Game.ENERGY_LOSS_RATE)
         self._schedule_event(self.spawn_nut, Game.NUT_SPAWN_RATE)
@@ -75,6 +79,18 @@ class Game:
 
         self._schedule_event(self.tick_squirrels, Game.NPC_MOVE_RATE)
 
+    def __generate_foxes(self):
+        foxes = []
+        for i in range(Game.N_FOXES):
+            while True:
+                pos = self.world.random_point()
+                if Fox._can_move_to(self.world, pos):
+                    break
+            fox = Fox(self.world.random_point(), Direction.DOWN)
+            self.world.foxes.append(fox)
+
+        self._schedule_event(self.tick_foxes, Game.FOX_MOVE_RATE)
+
     def _schedule_event(self, action, period):
         event = ScheduledEvent(action, period)
         self.scheduled_events.append(event)
@@ -91,6 +107,10 @@ class Game:
     def tick_squirrels(self, event, current_timestamp):
         for squirrel in self.world.squirrels:
             squirrel.tick(self)
+
+    def tick_foxes(self, event, current_timestamp):
+        for fox in self.world.foxes:
+            fox.tick(self)
 
     def load_assets(self):
         current_path = os.path.abspath(os.path.curdir)
@@ -158,6 +178,14 @@ class Game:
             if sx < 0 or sx >= SCREEN_WIDTH_TILES or sy < 0 or sy >= SCREEN_HEIGHT_TILES:
                 continue
             self._draw_image_at('greysquirrel', sx, sy, frame=squirrel.facing.value-1)
+
+        # Draw foxes
+        for fox in self.world.foxes:
+            sx = fox.pos.x + int(SCREEN_WIDTH_TILES / 2) - self.world.squirrel.pos.x
+            sy = fox.pos.y + int(SCREEN_HEIGHT_TILES / 2 - 1) - self.world.squirrel.pos.y
+            if sx < 0 or sx >= SCREEN_WIDTH_TILES or sy < 0 or sy >= SCREEN_HEIGHT_TILES:
+                continue
+            self._draw_image_at('fox', sx, sy, frame=fox.facing.value-1)
 
         # Draw squirrel
         self._draw_image_at(

@@ -45,6 +45,12 @@ class NPC(Character):
     def __init__(self, pos, facing):
         super().__init__(pos, facing)
 
+    def move_randomly(self, game):
+        self.facing = Direction(random.randint(1, 4))
+        new_pos = game._move_in_direction(self.pos, self.facing)
+        if self.can_move_to(game.world, new_pos):
+            self.pos = new_pos
+
 
 def successors(world, src, impassable=None):
     if impassable is None:

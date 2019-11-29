@@ -35,10 +35,7 @@ class Squirrel(NPC):
     def tick(self, game):
         self._randomly_target_nut(game)
         if self.state == Squirrel.SquirrelState.RANDOM:
-            self.facing = Direction(random.randint(1, 4))
-            new_pos = game._move_in_direction(self.pos, self.facing)
-            if self.can_move_to(game.world, new_pos):
-                self.pos = new_pos
+            self.move_randomly(game)
         elif self.state == Squirrel.SquirrelState.GETTING_NUT:
             target_nut = game.world.nuts.get(self.target_nut_id)
             if target_nut is not None:

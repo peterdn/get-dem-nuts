@@ -21,6 +21,7 @@ class World:
 
         self.squirrel = Squirrel(Point(14, 14), Direction.DOWN)
         self.squirrels = []
+        self.foxes = []
         self.nuts = {}
 
     def random_point(self):
@@ -40,3 +41,6 @@ class World:
             if pos == nut.pos:
                 return False
         return True
+
+    def is_tree(self, pos):
+        return self.MAP[pos.y][pos.x] == '#'
