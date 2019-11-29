@@ -1,7 +1,8 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractclassmethod
 import functools
 import math
 from queue import PriorityQueue
+import random
 
 from geometry import Direction, dist, Point
 
@@ -27,8 +28,8 @@ class Character(ABC):
         elif dst.x < self.pos.x:
             self.facing = Direction.LEFT
 
-    @abstractmethod
-    def _can_move_to(self, world, pos):
+    @abstractclassmethod
+    def _can_move_to(cls, world, pos):
         pass
 
     def can_move_to(self, world, pos):

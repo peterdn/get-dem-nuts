@@ -56,5 +56,6 @@ class Squirrel(NPC):
             else:
                 self.state = Squirrel.SquirrelState.RANDOM
 
-    def _can_move_to(self, world, pos):
+    @classmethod
+    def _can_move_to(cls, world, pos):
         return True
