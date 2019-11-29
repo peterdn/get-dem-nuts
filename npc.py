@@ -9,8 +9,9 @@ sign = functools.partial(math.copysign, 1)
 
 
 class Character(ABC):
-    def __init__(self):
-        pass
+    def __init__(self, pos, facing):
+        self.pos = pos
+        self.facing = facing
 
     def move_to(self, dst):
         self.face_towards(dst)
@@ -40,8 +41,8 @@ class Character(ABC):
 
 
 class NPC(Character):
-    def __init__(self):
-        pass
+    def __init__(self, pos, facing):
+        super().__init__(pos, facing)
 
 
 def successors(world, src, impassable=None):

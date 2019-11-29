@@ -15,10 +15,9 @@ class Squirrel(NPC):
         GETTING_NUT = 2
 
     def __init__(self, pos, facing):
+        super().__init__(pos, facing)
         self.id = Squirrel.__next_id
         Squirrel.__next_id += 1
-        self.pos = pos
-        self.facing = facing
         self.energy = 1000
         self.state = Squirrel.SquirrelState.RANDOM
         self.target_nut_id = None
