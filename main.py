@@ -45,6 +45,7 @@ class Nut:
 class Game:
     NUT_SPAWN_RATE = 8000
     ENERGY_LOSS_RATE = 500
+    ENERGY_LOSS_MULTIPLIER = 2
     N_SQUIRRELS = 5
     N_FOXES = 2
     NPC_MOVE_RATE = 1000
@@ -289,7 +290,7 @@ class Game:
             self.world.squirrel.facing = Direction.UP if self.new_pos.y < self.world.squirrel.pos.y else Direction.DOWN
 
         if self.world.can_move_to(self.new_pos):
-            energy_cost = pdist(self.new_pos, self.world.squirrel.pos)
+            energy_cost = pdist(self.new_pos, self.world.squirrel.pos) * self.ENERGY_LOSS_MULTIPLIER
             self.world.squirrel.set_energy(self.world.squirrel.energy - energy_cost)
             self.world.squirrel.pos = self.new_pos
         else:
