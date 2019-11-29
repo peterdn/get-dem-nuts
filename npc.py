@@ -35,25 +35,32 @@ class Character(ABC):
             return False
         return self._can_move_to(world, pos)
 
+    def find_path_astar(self, world, dst, within=0):
+        return find_path_astar(world, self.pos, dst, self, within)
+
 
 class NPC(Character):
     def __init__(self):
         pass
 
 
-def successors(map, src, impassable=None):
+def successors(world, src, impassable=None):
     if impassable is None:
         impassable = ''
 
-    height = len(map)
-    width = len(map[0])
+    height = len(world.MAP)
+    width = len(world.MAP[0])
 
     def valid_successor(p):
         if p.x == src.x and p.y == src.y:
             return False
         if p.x < 0 or p.y < 0 or p.x >= width or p.y >= height:
             return False
-        return map[p.y][p.x] not in impassable
+
+        if isinstance(impassable, str):
+            return world.MAP[p.y][p.x] not in impassable
+        elif isinstance(impassable, Character):
+            return impassable.can_move_to(world, p)
 
     successors = [Point(x, y) for x in range(src.x-1, src.x+2)
                   for y in range(src.y-1, src.y+2)]
@@ -80,7 +87,7 @@ def reconstruct_path(visited, src, dst):
     return path
 
 
-def find_path_astar(world, src, dst, impassable=None):
+def find_path_astar(world, src, dst, impassable=None, within=0):
     if impassable is None:
         impassable = ''
 
@@ -91,15 +98,15 @@ def find_path_astar(world, src, dst, impassable=None):
     fringe.put((0, src))
     while not fringe.empty():
         (_priority, pos) = fringe.get()
-        if pos == dst:
+        if dist(pos.x, pos.y, dst.x, dst.y) <= within:
             break
-        succs = successors(world.MAP, pos, impassable)
+        succs = successors(world, pos, impassable)
         for succ in succs:
             if not visited[succ.y][succ.x]:
                 visit(visited, succ, pos)
                 hcost = visited[succ.y][succ.x]['cost'] + dist(succ.x, succ.y, dst.x, dst.y)
                 fringe.put((hcost, succ))
-    if pos == dst:
-        return reconstruct_path(visited, src, dst)
+    if dist(pos.x, pos.y, dst.x, dst.y) <= within:
+        return reconstruct_path(visited, src, pos)
     else:
         return None

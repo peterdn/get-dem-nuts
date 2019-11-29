@@ -43,13 +43,13 @@ class Squirrel(NPC):
         elif self.state == Squirrel.SquirrelState.GETTING_NUT:
             target_nut = game.world.nuts.get(self.target_nut_id)
             if target_nut is not None:
-                path = find_path_astar(game.world, self.pos, target_nut.pos)
-                if path is not None and len(path) > 2:
+                path = self.find_path_astar(game.world, target_nut.pos, within=1)
+                if path is not None and len(path) > 1:
                     new_pos = path[1]
                     if self.can_move_to(game.world, new_pos):
                         self.move_to(new_pos)
-                elif len(path) == 2:
-                    self.face_towards(path[1])
+                elif path is not None and len(path) == 1:
+                    self.face_towards(target_nut.pos)
                     del game.world.nuts[self.target_nut_id]
                     self.state = Squirrel.SquirrelState.RANDOM
                 else:
