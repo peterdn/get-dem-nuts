@@ -52,6 +52,8 @@ class Game:
     N_GROUND_TILES = 30
 
     def __init__(self, screen):
+        self.font = pg.font.SysFont(pg.font.get_default_font(), 56)
+
         self.scheduled_events = []
 
         self.world = World(MAP, self.N_GROUND_TILES)
@@ -65,7 +67,7 @@ class Game:
         self.assets = {}
 
         self.energy_bar = pg.Surface((200, 30))
-        self.over = False
+        self._game_over = False
 
         self.new_pos = Point(self.world.squirrel.pos.x, self.world.squirrel.pos.y)
 
@@ -200,7 +202,19 @@ class Game:
         self.energy_bar.fill((255, 255, 0), pg.rect.Rect(2, 2, fill_width, 26))
         self.screen.blit(self.energy_bar, (20, 466))
 
+        if self._game_over:
+            self.render_game_over()
+
         pg.display.update()
+
+    def render_game_over(self):
+        s = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
+        s.fill((50, 50, 50, 224))
+        txt = self.font.render(self._game_over, True, (255, 255, 255))
+        x = (SCREEN_WIDTH - txt.get_width())/2
+        y = (SCREEN_HEIGHT - txt.get_height())/2
+        s.blit(txt, (x, y))
+        self.screen.blit(s, (0, 0))
 
     def _move_in_direction(self, pos, direction):
         x, y = pos.x, pos.y
@@ -282,7 +296,10 @@ class Game:
             self.new_pos = self.world.squirrel.pos
 
         if self.world.squirrel.energy <= 0:
-            self.over = True
+            self._game_over = "You ran out of energy and died!"
+
+    def over(self, message):
+        self._game_over = message
 
 
 def current_time_ms():
@@ -298,6 +315,7 @@ class ScheduledEvent:
 
 def main():
     pg.init()
+    pg.font.init()
 
     screen = pg.display.set_mode(SCREENRECT.size, 0)
     clock = pg.time.Clock()
@@ -335,7 +353,7 @@ def main():
                 if event.key == pg.K_f:
                     game.action(Action.F)
 
-        if not game.over:
+        if not game._game_over:
             current_timestamp = current_time_ms()
 
             if current_timestamp > last_move_timestamp + \
