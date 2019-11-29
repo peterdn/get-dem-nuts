@@ -19,7 +19,7 @@ class World:
                 self.GROUND_LAYER[y][x]['tileidx'] = \
                     random.randint(0, self.N_GROUND_TILES-1)
 
-        self.squirrel = Squirrel(Point(14, 14), Direction.DOWN)
+        self.squirrel = Squirrel(Point(23, 22), Direction.DOWN)
         self.squirrels = []
         self.foxes = []
         self.nuts = {}
