@@ -39,15 +39,16 @@ class Nut:
         self.pos = Point(x, y)
         self.id = Nut.__next_id
         Nut.__next_id += 1
-        self.energy = 200
+        self.energy = 250
 
 
 class Game:
-    NUT_SPAWN_RATE = 8000
+    NUT_SPAWN_RATE = 5000
     ENERGY_LOSS_RATE = 500
-    ENERGY_LOSS_MULTIPLIER = 2
+    ENERGY_LOSS_PER_SEC = 16
+    ENERGY_LOSS_MULTIPLIER = 1
     N_SQUIRRELS = 5
-    N_FOXES = 2
+    N_FOXES = 1
     NPC_MOVE_RATE = 1000
     FOX_MOVE_RATE = 150
     N_GROUND_TILES = 30
@@ -59,10 +60,11 @@ class Game:
 
         self.world = World(MAP, self.N_GROUND_TILES)
         self._generate_squirrels()
-        self.__generate_foxes()
+        self._generate_foxes()
+        self._generate_nuts()
 
         self._schedule_event(self.energy_loss, Game.ENERGY_LOSS_RATE)
-        self._schedule_event(self.spawn_nut, Game.NUT_SPAWN_RATE)
+        self._schedule_event(self.spawn_nut_event, Game.NUT_SPAWN_RATE)
 
         self.screen = screen
         self.assets = {}
@@ -74,6 +76,11 @@ class Game:
 
         self.random_seed = time.time_ns()
 
+    def _generate_nuts(self):
+        initial_nuts_for_level = 4
+        for i in range(initial_nuts_for_level):
+            self.spawn_random_nut()
+
     def _generate_squirrels(self):
         squirrels = []
         for i in range(Game.N_SQUIRRELS):
@@ -82,7 +89,7 @@ class Game:
 
         self._schedule_event(self.tick_squirrels, Game.NPC_MOVE_RATE)
 
-    def __generate_foxes(self):
+    def _generate_foxes(self):
         foxes = []
         for i in range(Game.N_FOXES):
             while True:
@@ -99,9 +106,13 @@ class Game:
         self.scheduled_events.append(event)
 
     def energy_loss(self, event, current_timestamp):
-        self.world.squirrel.energy -= int((current_timestamp - event.last_timestamp) / self.ENERGY_LOSS_RATE)
+        energy_loss = int((current_timestamp - event.last_timestamp) / 1000 * self.ENERGY_LOSS_PER_SEC)
+        self.world.squirrel.energy -= energy_loss
 
-    def spawn_nut(self, event, current_timestamp):
+    def spawn_nut_event(self, event, current_timestamp):
+        self.spawn_random_nut()
+
+    def spawn_random_nut(self):
         nutx = random.randint(0, self.world.WIDTH_TILES-1)
         nuty = random.randint(0, self.world.HEIGHT_TILES-1)
         nut = Nut(nutx, nuty)
