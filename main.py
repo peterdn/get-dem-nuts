@@ -9,6 +9,7 @@ import pygame as pg
 from geometry import Direction, pdist, Point, Rotation
 from fox import Fox
 from map import MAP
+from nut import Nut
 from squirrel import Squirrel
 from world import World
 
@@ -30,16 +31,7 @@ ASSETS = [
 class Action(enum.Enum):
     SPACE = 1
     F = 2
-
-
-class Nut:
-    __next_id = 1
-
-    def __init__(self, x, y):
-        self.pos = Point(x, y)
-        self.id = Nut.__next_id
-        Nut.__next_id += 1
-        self.energy = 250
+    C = 3
 
 
 class Game:
@@ -179,6 +171,8 @@ class Game:
 
         # Render nuts
         for nut in self.world.nuts.values():
+            if nut.state != Nut.NutState.ACTIVE:
+                continue
             sx = nut.pos.x + int(SCREEN_WIDTH_TILES / 2) - self.world.squirrel.pos.x
             sy = nut.pos.y + int(SCREEN_HEIGHT_TILES / 2 - 1) - self.world.squirrel.pos.y
             if sx < 0 or sx >= SCREEN_WIDTH_TILES or sy < 0 or sy >= SCREEN_HEIGHT_TILES:
@@ -280,18 +274,31 @@ class Game:
 
     def action(self, action):
         facingx, facingy = self._facing()
+        facing = Point(facingx, facingy)
         if action == Action.SPACE:
-            nut_id = None
-            for nut in self.world.nuts.values():
-                if nut.pos.x == facingx and nut.pos.y == facingy:
-                    nut_id = nut.id
-                    self.world.squirrel.set_energy(self.world.squirrel.energy + nut.energy)
-
-            if nut_id is not None:
-                del self.world.nuts[nut_id]
+            nut = self.world.is_nut(facing)
+            if nut is not None and nut.state == Nut.NutState.ACTIVE:
+                self.world.squirrel.set_energy(self.world.squirrel.energy + nut.energy)
+                del self.world.nuts[nut.id]
+        elif action == Action.C:
+            if self.world.squirrel.is_carrying_nut() and self.world.can_bury_nut(facing):
+                nut = self.world.squirrel.carrying_nut
+                nut.pos = facing
+                nut.state = Nut.NutState.BURIED
+                self.world.nuts[nut.id] = nut
+                self.world.squirrel.carrying_nut = None
+            else:
+                nut = self.world.is_nut(facing)
+                if nut is not None and not self.world.squirrel.is_carrying_nut():
+                    if nut.state == Nut.NutState.ACTIVE:
+                        self.world.squirrel.carrying_nut = nut
+                        del self.world.nuts[nut.id]
+                    elif nut.state == Nut.NutState.BURIED:
+                        nut.state = Nut.NutState.ACTIVE
         elif action == Action.F:
             if facingx >= 0 and facingy >= 0 and facingx < self.world.WIDTH_TILES and facingy < self.world.HEIGHT_TILES:
                 self.world.GROUND_LAYER[facingy][facingx]['tileidx'] = random.randint(0, self.N_GROUND_TILES-1)
+
 
     def tick(self):
         # If we're moving in a cardinal direction, face that way
@@ -364,6 +371,8 @@ def main():
                     game.action(Action.SPACE)
                 if event.key == pg.K_f:
                     game.action(Action.F)
+                if event.key == pg.K_c:
+                    game.action(Action.C)
 
         if not game._game_over:
             current_timestamp = current_time_ms()

@@ -1,6 +1,7 @@
 import random
 
 from geometry import Direction, Point
+from nut import Nut
 from squirrel import Squirrel
 
 
@@ -24,13 +25,22 @@ class World:
         self.foxes = []
         self.nuts = {}
 
+    def active_nuts(self):
+        return list(filter(lambda nut: nut.state == Nut.NutState.ACTIVE,
+                           self.nuts.values()))
+
     def random_point(self):
         x = random.randint(0, self.WIDTH_TILES - 1)
         y = random.randint(0, self.HEIGHT_TILES - 1)
         return Point(x, y)
 
-    def can_move_to(self, pos):
+    def in_world_bounds(self, pos):
         if pos.x < 0 or pos.x >= self.WIDTH_TILES or pos.y < 0 or pos.y >= self.HEIGHT_TILES:
+            return False
+        return True
+
+    def can_move_to(self, pos):
+        if not self.in_world_bounds(pos):
             return False
         if pos == self.squirrel.pos:
             return False
@@ -38,9 +48,35 @@ class World:
             if pos == squirrel.pos:
                 return False
         for nut in self.nuts.values():
-            if pos == nut.pos:
+            if nut.state == Nut.NutState.ACTIVE and pos == nut.pos:
                 return False
         return True
 
     def is_tree(self, pos):
-        return self.MAP[pos.y][pos.x] == '#'
+        return self.in_world_bounds(pos) and self.MAP[pos.y][pos.x] == '#'
+
+    def is_nut(self, pos):
+        if not self.in_world_bounds(pos):
+            return None
+        for nut in self.nuts.values():
+            if nut.pos.x == pos.x and nut.pos.y == pos.y:
+                return nut
+        return None
+
+    def is_npc(self, pos):
+        for squirrel in self.squirrels:
+            if pos == squirrel.pos:
+                return True
+
+        for fox in self.foxes:
+            if pos == fox.pos:
+                return True
+
+        return False
+
+    def can_bury_nut(self, pos):
+        if self.is_tree(pos) or self.is_nut(pos):
+            return False
+        if self.is_npc(pos):
+            return False
+        return self.in_world_bounds(pos)

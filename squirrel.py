@@ -3,6 +3,7 @@ import random
 
 from geometry import Direction, Rotation
 from npc import NPC, find_path_astar
+from nut import Nut
 
 
 class Squirrel(NPC):
@@ -21,12 +22,13 @@ class Squirrel(NPC):
         self.energy = 1000
         self.state = Squirrel.SquirrelState.RANDOM
         self.target_nut_id = None
+        self.carrying_nut = None
 
     def set_energy(self, energy):
         self.energy = min(1000, max(0, energy))
 
     def _randomly_target_nut(self, game):
-        if self.state == Squirrel.SquirrelState.RANDOM and game.world.nuts:
+        if self.state == Squirrel.SquirrelState.RANDOM and game.world.active_nuts():
             p = random.random()
             if p <= Squirrel.GET_NUT_PROBABILTY:
                 self.state = Squirrel.SquirrelState.GETTING_NUT
@@ -38,7 +40,7 @@ class Squirrel(NPC):
             self.move_randomly(game)
         elif self.state == Squirrel.SquirrelState.GETTING_NUT:
             target_nut = game.world.nuts.get(self.target_nut_id)
-            if target_nut is not None:
+            if target_nut is not None and target_nut.state == Nut.NutState.ACTIVE:
                 path = self.find_path_astar(game.world, target_nut.pos, within=1)
                 if path is not None and len(path) > 1:
                     new_pos = path[1]
@@ -52,6 +54,9 @@ class Squirrel(NPC):
                     self.state = Squirrel.SquirrelState.RANDOM
             else:
                 self.state = Squirrel.SquirrelState.RANDOM
+
+    def is_carrying_nut(self):
+        return self.carrying_nut is not None
 
     @classmethod
     def _can_move_to(cls, world, pos):
