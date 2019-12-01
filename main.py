@@ -2,6 +2,7 @@ import enum
 import io
 import os
 import random
+import sys
 import time
 
 import pygame as pg
@@ -29,6 +30,14 @@ ASSETS = [
     {'name': "winterground", 'mirror': True},
     "bignut", "bignutgrey", "snow",
 ]
+
+
+def resource_dir():
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(os.path.curdir)
+    return os.path.join(base_path, 'assets')
 
 
 class Action(enum.Enum):
@@ -66,7 +75,7 @@ class Game:
     DAY_TRANSITION_LENGTH = 1000
 
     def __init__(self, screen):
-        font_path = os.path.join("assets", "freesansbold.ttf")
+        font_path = os.path.join(resource_dir(), "freesansbold.ttf")
         self.game_over_font = pg.font.Font(font_path, 48)
         self.stats_font = pg.font.Font(font_path, 28)
         self.score_font = pg.font.Font(font_path, 24)
@@ -203,8 +212,7 @@ class Game:
             fox.tick(self)
 
     def load_assets(self):
-        current_path = os.path.abspath(os.path.curdir)
-        assets_path = os.path.join(current_path, 'assets')
+        assets_path = resource_dir()
         for asset in ASSETS:
             asset_filename = asset if isinstance(asset, str) else asset['name']
             f = os.path.join(assets_path, f"{asset_filename}.png")
