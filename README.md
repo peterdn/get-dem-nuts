@@ -36,3 +36,10 @@ About
 This game is a prototype built very hastily for [GitHub Game Off 2019](https://itch.io/jam/game-off-2019).
 
 Source code can be found on [GitHub](https://github.com/peterdn/get-dem-nuts/).
+
+License
+-------
+
+Code is licensed under a [BSD 2-clause "Simplfied" License](LICENSE).
+
+Assets are licensed under a [Creative Commons Attribution 4.0 International License](assets/LICENSE).
