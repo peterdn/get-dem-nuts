@@ -23,8 +23,9 @@ SCREEN_WIDTH_TILES = int(SCREENRECT.width / TILE_WIDTH)
 SCREEN_HEIGHT_TILES = int(SCREENRECT.height / TILE_HEIGHT)
 
 ASSETS = [
-    "squirrel", "greysquirrel", "tree", "nut", "water", "fox", "sun",
+    "squirrel", "greysquirrel", "tree", "wintertree", "nut", "water", "fox", "sun",
     {'name': "summerground", 'mirror': True},
+    {'name': "winterground", 'mirror': True},
     "bignut", "bignutgrey",
 ]
 
@@ -229,9 +230,11 @@ class Game:
                     self._draw_image_at('water', x, y)
                 elif self.world.MAP[mapy][mapx] == '.':
                     frame = self.world.GROUND_LAYER[mapy][mapx]['tileidx']
-                    self._draw_image_at('summerground', x, y, frame=frame)
+                    ground = 'summerground' if self.current_season == Season.SUMMER else 'winterground'
+                    self._draw_image_at(ground, x, y, frame=frame)
                 elif self.world.MAP[mapy][mapx] == '#':
-                    self._draw_image_at('tree', x, y)
+                    tree = 'tree' if self.current_season == Season.SUMMER else 'wintertree'
+                    self._draw_image_at(tree, x, y)
 
     def render(self):
         self.screen.fill((30, 182, 202))
