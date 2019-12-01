@@ -26,7 +26,7 @@ ASSETS = [
     "squirrel", "greysquirrel", "tree", "wintertree", "nut", "water", "fox", "sun",
     {'name': "summerground", 'mirror': True},
     {'name': "winterground", 'mirror': True},
-    "bignut", "bignutgrey",
+    "bignut", "bignutgrey", "snow",
 ]
 
 
@@ -37,8 +37,8 @@ class Action(enum.Enum):
 
 
 class Season(enum.Enum):
-    SUMMER = 1
-    WINTER = 2
+    SUMMER = "summer"
+    WINTER = "winter"
 
 
 class Game:
@@ -58,13 +58,14 @@ class Game:
     DAY_TRANSITION_LENGTH = 1000
 
     def __init__(self, screen):
-        self.font = pg.font.SysFont(pg.font.get_default_font(), 56)
+        self.game_over_font = pg.font.SysFont(pg.font.get_default_font(), 56)
+        self.score_font = pg.font.SysFont(pg.font.get_default_font(), 28)
 
         self.screen = screen
         self.assets = {}
 
         self.energy_bar = pg.Surface((200, 30))
-        self.sunlight_bar = pg.Surface((200, 30))
+        self.sunlight_bar = pg.Surface((360, 30))
         self.nightfall_overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
         self._game_over = False
 
@@ -297,9 +298,17 @@ class Game:
 
     def render_sunlight_bar(self):
         self.sunlight_bar.fill((0, 0, 128))
+        score_txt = f"Lvl {self.level}"
+        txt = self.score_font.render(score_txt, True, (255, 255, 255))
+        y = (self.sunlight_bar.get_height() - txt.get_height()) / 2
+        self.sunlight_bar.blit(txt, (8, y))
+        txt_width = txt.get_width() + 16
+
+        season_icon = 'sun' if self.current_season == Season.SUMMER else 'snow'
+        progress_width = self.sunlight_bar.get_width() - txt_width
         x = (self.current_round_elapsed / self.ROUND_DURATION[self.current_season]) * \
-            (self.sunlight_bar.get_width() - self.assets['sun'].get_width())
-        self.sunlight_bar.blit(self.assets['sun'], (x, 0))
+            (progress_width - self.assets[season_icon].get_width()) + txt_width
+        self.sunlight_bar.blit(self.assets[season_icon], (x, 0))
         self.screen.blit(self.sunlight_bar, (240, 466))
 
     def render_inventory(self):
@@ -312,7 +321,7 @@ class Game:
     def render_game_over(self):
         s = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
         s.fill((50, 50, 50, 224))
-        txt = self.font.render(self._game_over, True, (255, 255, 255))
+        txt = self.game_over_font.render(self._game_over, True, (255, 255, 255))
         x = (SCREEN_WIDTH - txt.get_width())/2
         y = (SCREEN_HEIGHT - txt.get_height())/2
         s.blit(txt, (x, y))
