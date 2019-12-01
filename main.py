@@ -155,7 +155,7 @@ class Game:
                 pos = self.world.random_point()
                 if Fox._can_move_to(self.world, pos):
                     break
-            fox = Fox(self.world.random_point(), Direction.DOWN)
+            fox = Fox(pos, Direction.DOWN)
             self.world.foxes.append(fox)
 
     def _schedule_event(self, action, period):
