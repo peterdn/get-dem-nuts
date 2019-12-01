@@ -42,18 +42,22 @@ class Squirrel(NPC):
         elif self.state == Squirrel.SquirrelState.GETTING_NUT:
             target_nut = game.world.nuts.get(self.target_nut_id)
             if target_nut is not None and target_nut.state == Nut.NutState.ACTIVE:
+                print(f"Squirrel {self.id}: gettin nut {target_nut.id} at {target_nut.pos}")
                 path = self.find_path_astar(game.world, target_nut.pos, within=1)
                 if path is not None and len(path) > 1:
                     new_pos = path[1]
                     if self.can_move_to(game.world, new_pos):
                         self.move_to(new_pos)
                 elif path is not None and len(path) == 1:
+                    print(f"Squirrel {self.id}: ate nut {target_nut.id} at {target_nut.pos}")
                     self.face_towards(target_nut.pos)
                     del game.world.nuts[self.target_nut_id]
                     self.state = Squirrel.SquirrelState.RANDOM
                 else:
+                    print(f"Squirrel {self.id}: failed to find path to nut {target_nut.id} at {target_nut.pos}")
                     self.state = Squirrel.SquirrelState.RANDOM
             else:
+                print(f"Squirrel {self.id}: failed to get nut")
                 self.state = Squirrel.SquirrelState.RANDOM
 
     def is_carrying_nut(self):

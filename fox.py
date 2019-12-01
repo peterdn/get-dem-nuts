@@ -37,6 +37,7 @@ class Fox(NPC):
     def tick(self, game):
         self._randomly_hunt(game)
         if self._within_attack_range(game):
+            print(f"Fox {self.id}: chasing")
             path = self.find_path_astar(game.world, game.world.squirrel.pos, 1)
             if path is not None and len(path) > 1:
                 self.move_to(path[1])
@@ -47,12 +48,14 @@ class Fox(NPC):
         elif self.state == Fox.FoxState.RANDOM:
             self.move_randomly(game)
         elif self.state == Fox.FoxState.HUNTING:
+            print(f"Fox {self.id}: hunting to {self.hunt_destination}")
             path = self.find_path_astar(game.world, self.hunt_destination)
             if path is not None and len(path) > 1:
                 new_pos = path[1]
                 if self.can_move_to(game.world, new_pos):
                     self.move_to(new_pos)
             else:
+                print(f"Fox {self.id}: end hunting")
                 self.state = Fox.FoxState.RANDOM
 
     @classmethod
