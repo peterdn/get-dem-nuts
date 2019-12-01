@@ -29,10 +29,11 @@ class Squirrel(NPC):
 
     def _randomly_target_nut(self, game):
         if self.state == Squirrel.SquirrelState.RANDOM and game.world.active_nuts():
+            active_nuts = game.world.active_nuts()
             p = random.random()
             if p <= Squirrel.GET_NUT_PROBABILTY:
                 self.state = Squirrel.SquirrelState.GETTING_NUT
-                self.target_nut_id = list(game.world.nuts.keys())[random.randrange(0, len(game.world.nuts))]
+                self.target_nut_id = active_nuts[random.randrange(0, len(active_nuts))].id
 
     def tick(self, game):
         self._randomly_target_nut(game)
