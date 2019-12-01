@@ -25,6 +25,7 @@ SCREEN_HEIGHT_TILES = int(SCREENRECT.height / TILE_HEIGHT)
 ASSETS = [
     "squirrel", "greysquirrel", "tree", "nut", "water", "fox",
     {'name': "summerground", 'mirror': True},
+    "bignut", "bignutgrey",
 ]
 
 
@@ -208,10 +209,19 @@ class Game:
         self.energy_bar.fill((255, 255, 0), pg.rect.Rect(2, 2, fill_width, 26))
         self.screen.blit(self.energy_bar, (20, 466))
 
+        self.render_inventory()
+
         if self._game_over:
             self.render_game_over()
 
         pg.display.update()
+
+    def render_inventory(self):
+        if self.world.squirrel.is_carrying_nut():
+            nut_image = self.assets['bignut']
+        else:
+            nut_image = self.assets['bignutgrey']
+        self.screen.blit(nut_image, (620, 464))
 
     def render_game_over(self):
         s = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
