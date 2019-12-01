@@ -66,9 +66,10 @@ class Game:
     DAY_TRANSITION_LENGTH = 1000
 
     def __init__(self, screen):
-        self.game_over_font = pg.font.SysFont(pg.font.get_default_font(), 56)
-        self.stats_font = pg.font.SysFont(pg.font.get_default_font(), 36)
-        self.score_font = pg.font.SysFont(pg.font.get_default_font(), 28)
+        font_path = os.path.join("assets", "freesansbold.ttf")
+        self.game_over_font = pg.font.Font(font_path, 48)
+        self.stats_font = pg.font.Font(font_path, 28)
+        self.score_font = pg.font.Font(font_path, 24)
 
         self.screen = screen
         self.assets = {}
