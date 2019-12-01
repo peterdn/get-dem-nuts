@@ -21,6 +21,7 @@ TILE_WIDTH = 32
 TILE_HEIGHT = 32
 SCREEN_WIDTH_TILES = int(SCREENRECT.width / TILE_WIDTH)
 SCREEN_HEIGHT_TILES = int(SCREENRECT.height / TILE_HEIGHT)
+WHITE_COLOR = (255, 255, 255)
 
 ASSETS = [
     "squirrel", "greysquirrel", "tree", "wintertree", "nut", "water", "fox", "sun",
@@ -41,6 +42,13 @@ class Season(enum.Enum):
     WINTER = "winter"
 
 
+class Stats:
+    def __init__(self):
+        self.nuts_eaten = 0
+        self.nuts_buried = set()
+        self.seasons_survived = 0
+
+
 class Game:
     NUT_SPAWN_RATE = 5000
     ENERGY_LOSS_RATE = 500
@@ -59,10 +67,12 @@ class Game:
 
     def __init__(self, screen):
         self.game_over_font = pg.font.SysFont(pg.font.get_default_font(), 56)
+        self.stats_font = pg.font.SysFont(pg.font.get_default_font(), 36)
         self.score_font = pg.font.SysFont(pg.font.get_default_font(), 28)
 
         self.screen = screen
         self.assets = {}
+        self.stats = Stats()
 
         self.energy_bar = pg.Surface((200, 30))
         self.sunlight_bar = pg.Surface((360, 30))
@@ -102,6 +112,8 @@ class Game:
 
         if not self.world.is_tree(self.world.squirrel.pos):
             self.over("You got eaten by an owl!")
+
+        self.stats.seasons_survived += 1
 
         if self.current_season == Season.SUMMER:
             self.current_season = Season.WINTER
@@ -278,7 +290,7 @@ class Game:
         # Draw energy bar
         self.energy_bar.fill((0, 0, 128))
         fill_width = (self.world.squirrel.energy / 1000) * 196
-        self.energy_bar.fill((255, 255, 255), pg.rect.Rect(2, 2, fill_width, 26))
+        self.energy_bar.fill(WHITE_COLOR, pg.rect.Rect(2, 2, fill_width, 26))
         self.screen.blit(self.energy_bar, (20, 466))
 
         self.render_sunlight_bar()
@@ -299,7 +311,7 @@ class Game:
     def render_sunlight_bar(self):
         self.sunlight_bar.fill((0, 0, 128))
         score_txt = f"Lvl {self.level}"
-        txt = self.score_font.render(score_txt, True, (255, 255, 255))
+        txt = self.score_font.render(score_txt, True, WHITE_COLOR)
         y = (self.sunlight_bar.get_height() - txt.get_height()) / 2
         self.sunlight_bar.blit(txt, (8, y))
         txt_width = txt.get_width() + 16
@@ -321,10 +333,22 @@ class Game:
     def render_game_over(self):
         s = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
         s.fill((50, 50, 50, 224))
-        txt = self.game_over_font.render(self._game_over, True, (255, 255, 255))
+
+        txt = self.game_over_font.render(self._game_over, True, WHITE_COLOR)
+        stat1_txt = self.stats_font.render(f"Seasons survived: {self.stats.seasons_survived}", True, WHITE_COLOR)
+        stat2_txt = self.stats_font.render(f"Nuts eaten: {self.stats.nuts_eaten}", True, WHITE_COLOR)
+        stat3_txt = self.stats_font.render(f"Nuts buried: {len(self.stats.nuts_buried)}", True, WHITE_COLOR)
+
         x = (SCREEN_WIDTH - txt.get_width())/2
-        y = (SCREEN_HEIGHT - txt.get_height())/2
+        y = (SCREEN_HEIGHT - txt.get_height() - stat1_txt.get_height() - stat2_txt.get_height() - stat3_txt.get_height())/2
         s.blit(txt, (x, y))
+        y += txt.get_height()
+        s.blit(stat1_txt, (x, y))
+        y += stat1_txt.get_height()
+        s.blit(stat2_txt, (x, y))
+        y += stat1_txt.get_height()
+        s.blit(stat3_txt, (x, y))
+
         self.screen.blit(s, (0, 0))
 
     def _move_in_direction(self, pos, direction):
@@ -383,6 +407,7 @@ class Game:
         if action == Action.SPACE:
             nut = self.world.is_nut(facing)
             if nut is not None and nut.state == Nut.NutState.ACTIVE:
+                self.stats.nuts_eaten += 1
                 self.world.squirrel.set_energy(self.world.squirrel.energy + nut.energy)
                 del self.world.nuts[nut.id]
         elif action == Action.C and self.world.is_tree(self.world.squirrel.pos) == self.world.is_tree(facing):
@@ -390,6 +415,7 @@ class Game:
                 nut = self.world.squirrel.carrying_nut
                 nut.pos = facing
                 nut.state = Nut.NutState.BURIED
+                self.stats.nuts_buried.add(nut.id)
                 self.world.nuts[nut.id] = nut
                 self.world.squirrel.carrying_nut = None
             else:
