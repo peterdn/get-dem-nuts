@@ -29,6 +29,10 @@ class World:
         return list(filter(lambda nut: nut.state == Nut.NutState.ACTIVE,
                            self.nuts.values()))
 
+    def buried_nuts(self):
+        return list(filter(lambda nut: nut.state == Nut.NutState.BURIED,
+                           self.nuts.values()))
+
     def random_point(self):
         x = random.randint(0, self.WIDTH_TILES - 1)
         y = random.randint(0, self.HEIGHT_TILES - 1)
