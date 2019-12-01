@@ -204,7 +204,6 @@ class Game:
     def load_assets(self):
         current_path = os.path.abspath(os.path.curdir)
         assets_path = os.path.join(current_path, 'assets')
-        print("Loading assets...")
         for asset in ASSETS:
             asset_filename = asset if isinstance(asset, str) else asset['name']
             f = os.path.join(assets_path, f"{asset_filename}.png")
