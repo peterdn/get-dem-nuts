@@ -46,27 +46,16 @@ class Game:
     ENERGY_LOSS_PER_SEC = 16
     ENERGY_LOSS_MULTIPLIER = 1
     N_SQUIRRELS = 5
-    N_FOXES = 1
     NPC_MOVE_RATE = 1000
     FOX_MOVE_RATE = 150
     N_GROUND_TILES = 30
     ROUND_DURATION = {
-        Season.SUMMER: 3*60*1000,
-        Season.WINTER: 2*60*1000
+        Season.SUMMER: 1*50*1000,
+        Season.WINTER: 1*30*1000,
     }
 
     def __init__(self, screen):
         self.font = pg.font.SysFont(pg.font.get_default_font(), 56)
-
-        self.scheduled_events = []
-
-        self.world = World(MAP, self.N_GROUND_TILES)
-        self._generate_squirrels()
-        self._generate_foxes()
-        self._generate_nuts()
-
-        self._schedule_event(self.energy_loss, Game.ENERGY_LOSS_RATE)
-        self._schedule_event(self.spawn_nut_event, Game.NUT_SPAWN_RATE)
 
         self.screen = screen
         self.assets = {}
@@ -75,36 +64,76 @@ class Game:
         self.sunlight_bar = pg.Surface((200, 30))
         self._game_over = False
 
-        self.new_pos = Point(self.world.squirrel.pos.x, self.world.squirrel.pos.y)
+        self.world = World(MAP, self.N_GROUND_TILES)
 
+        self.scheduled_events = []
+
+        self.level = 1
         self.current_season = Season.SUMMER
         self.current_round_elapsed = 0
-        self._schedule_event(self.update_round_elapsed, 1)
+        self.init_season()
 
-    def _generate_nuts(self):
-        initial_nuts_for_level = 4
-        for i in range(initial_nuts_for_level):
+        self.new_pos = Point(self.world.squirrel.pos.x, self.world.squirrel.pos.y)
+
+    def next_season(self):
+        # TODO: transition
+        if not self.world.is_tree(self.world.squirrel.pos):
+            self.over("You got eaten by an owl!")
+
+        if self.current_season == Season.SUMMER:
+            self.current_season = Season.WINTER
+        elif self.current_season == Season.WINTER:
+            self.current_season = Season.SUMMER
+            self.level += 1
+        self.init_season()
+
+    def init_season(self):
+        self.scheduled_events.clear()
+        self._schedule_event(self.update_round_elapsed, 1)
+        self._schedule_event(self.energy_loss, Game.ENERGY_LOSS_RATE)
+        self._schedule_event(self.tick_squirrels, Game.NPC_MOVE_RATE)
+        self._schedule_event(self.tick_foxes, Game.FOX_MOVE_RATE)
+
+        self.current_round_elapsed = 0
+        self._init_foxes(self.number_foxes_for_level())
+        if self.current_season == Season.SUMMER:
+            self._init_squirrels(Game.N_SQUIRRELS)
+            self._init_nuts(self.number_nuts_for_level())
+            self._schedule_event(self.spawn_nut_event, self.nut_spawn_rate_for_level())
+        elif self.current_season == Season.WINTER:
+            self._init_squirrels(0)
+            self._init_nuts(0)
+
+    def nut_spawn_rate_for_level(self):
+        return 5000 + self.level * 2000
+
+    def number_nuts_for_level(self):
+        return max(1, 5 - self.level)
+
+    def number_foxes_for_level(self):
+        return self.level
+
+    def _init_nuts(self, nnuts):
+        for nut in self.world.active_nuts():
+            del self.world.nuts[nut.id]
+        for i in range(nnuts):
             self.spawn_random_nut()
 
-    def _generate_squirrels(self):
-        squirrels = []
-        for i in range(Game.N_SQUIRRELS):
+    def _init_squirrels(self, nsquirrels):
+        self.world.squirrels.clear()
+        for i in range(nsquirrels):
             squirrel = Squirrel(self.world.random_point(), Direction.RIGHT)
             self.world.squirrels.append(squirrel)
 
-        self._schedule_event(self.tick_squirrels, Game.NPC_MOVE_RATE)
-
-    def _generate_foxes(self):
-        foxes = []
-        for i in range(Game.N_FOXES):
+    def _init_foxes(self, nfoxes):
+        self.world.foxes.clear()
+        for i in range(nfoxes):
             while True:
                 pos = self.world.random_point()
                 if Fox._can_move_to(self.world, pos):
                     break
             fox = Fox(self.world.random_point(), Direction.DOWN)
             self.world.foxes.append(fox)
-
-        self._schedule_event(self.tick_foxes, Game.FOX_MOVE_RATE)
 
     def _schedule_event(self, action, period):
         event = ScheduledEvent(action, period)
@@ -121,7 +150,7 @@ class Game:
         elapsed = current_timestamp - event.last_timestamp
         self.current_round_elapsed += elapsed
         if self.current_round_elapsed > self.ROUND_DURATION[self.current_season]:
-            self.over("Summer is over")
+            self.next_season()
 
     def spawn_random_nut(self):
         nutx = random.randint(0, self.world.WIDTH_TILES-1)
