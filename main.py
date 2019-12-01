@@ -53,6 +53,8 @@ class Game:
         Season.SUMMER: 1*50*1000,
         Season.WINTER: 1*30*1000,
     }
+    DAY_TRANSITION_RATE = 50
+    DAY_TRANSITION_LENGTH = 1000
 
     def __init__(self, screen):
         self.font = pg.font.SysFont(pg.font.get_default_font(), 56)
@@ -62,6 +64,7 @@ class Game:
 
         self.energy_bar = pg.Surface((200, 30))
         self.sunlight_bar = pg.Surface((200, 30))
+        self.nightfall_overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
         self._game_over = False
 
         self.world = World(MAP, self.N_GROUND_TILES)
@@ -71,12 +74,30 @@ class Game:
         self.level = 1
         self.current_season = Season.SUMMER
         self.current_round_elapsed = 0
+        self.nightfall = 20
         self.init_season()
 
         self.new_pos = Point(self.world.squirrel.pos.x, self.world.squirrel.pos.y)
 
+    def nightfall_transition(self, event, current_timestamp):
+        if self.nightfall >= self.DAY_TRANSITION_LENGTH / self.DAY_TRANSITION_RATE:
+            complete_next_season()
+        else:
+            self.nightfall += (current_timestamp - event.last_timestamp) / self.DAY_TRANSITION_RATE
+
+    def daylight_transition(self, event, current_timestamp):
+        if self.nightfall >= 0:
+            self.nightfall -= (current_timestamp - event.last_timestamp) / self.DAY_TRANSITION_RATE
+
     def next_season(self):
-        # TODO: transition
+        self.scheduled_events.clear()
+
+        self._schedule_event(self.nightfall_transition, self.DAY_TRANSITION_RATE)
+        self._schedule_event(self.complete_next_season, self.DAY_TRANSITION_LENGTH)
+
+    def complete_next_season(self, event, current_timestamp):
+        self.scheduled_events.clear()
+
         if not self.world.is_tree(self.world.squirrel.pos):
             self.over("You got eaten by an owl!")
 
@@ -88,7 +109,7 @@ class Game:
         self.init_season()
 
     def init_season(self):
-        self.scheduled_events.clear()
+        self._schedule_event(self.daylight_transition, self.DAY_TRANSITION_RATE)
         self._schedule_event(self.update_round_elapsed, 1)
         self._schedule_event(self.energy_loss, Game.ENERGY_LOSS_RATE)
         self._schedule_event(self.tick_squirrels, Game.NPC_MOVE_RATE)
@@ -260,6 +281,12 @@ class Game:
 
         self.render_inventory()
 
+        if self.nightfall > 0:
+            nightfall_alpha = (self.nightfall / (self.DAY_TRANSITION_LENGTH / self.DAY_TRANSITION_RATE)) * 255
+            nightfall_alpha = max(0, min(255, nightfall_alpha))
+            self.nightfall_overlay.fill((0, 0, 0, nightfall_alpha))
+            self.screen.blit(self.nightfall_overlay, (0, 0))
+
         if self._game_over:
             self.render_game_over()
 
@@ -364,7 +391,6 @@ class Game:
         elif action == Action.F:
             if facingx >= 0 and facingy >= 0 and facingx < self.world.WIDTH_TILES and facingy < self.world.HEIGHT_TILES:
                 self.world.GROUND_LAYER[facingy][facingx]['tileidx'] = random.randint(0, self.N_GROUND_TILES-1)
-
 
     def tick(self):
         # If we're moving in a cardinal direction, face that way
