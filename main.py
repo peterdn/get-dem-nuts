@@ -280,7 +280,7 @@ class Game:
             if nut is not None and nut.state == Nut.NutState.ACTIVE:
                 self.world.squirrel.set_energy(self.world.squirrel.energy + nut.energy)
                 del self.world.nuts[nut.id]
-        elif action == Action.C:
+        elif action == Action.C and not self.world.is_tree(self.world.squirrel.pos):
             if self.world.squirrel.is_carrying_nut() and self.world.can_bury_nut(facing):
                 nut = self.world.squirrel.carrying_nut
                 nut.pos = facing
