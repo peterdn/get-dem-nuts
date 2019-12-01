@@ -52,7 +52,7 @@ class Game:
     N_GROUND_TILES = 30
     ROUND_DURATION = {
         Season.SUMMER: 1*50*1000,
-        Season.WINTER: 1*30*1000,
+        Season.WINTER: 1*25*1000,
     }
     DAY_TRANSITION_RATE = 50
     DAY_TRANSITION_LENGTH = 1000
@@ -128,13 +128,13 @@ class Game:
             self._init_nuts(0)
 
     def nut_spawn_rate_for_level(self):
-        return 5000 + self.level * 2000
+        return 5000 + self.level * 1000
 
     def number_nuts_for_level(self):
-        return max(1, 5 - self.level)
+        return max(1, 6 - self.level)
 
     def number_foxes_for_level(self):
-        return self.level
+        return int(self.level / 2 + 0.5)
 
     def _init_nuts(self, nnuts):
         for nut in self.world.active_nuts():
