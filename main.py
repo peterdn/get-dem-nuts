@@ -453,7 +453,7 @@ class Game:
             self.new_pos = self.world.squirrel.pos
 
         if self.world.squirrel.energy <= 0:
-            self._game_over = "You ran out of energy and died!"
+            self._game_over = "You ran out of energy!"
 
     def over(self, message):
         self._game_over = message
