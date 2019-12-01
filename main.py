@@ -23,7 +23,7 @@ SCREEN_WIDTH_TILES = int(SCREENRECT.width / TILE_WIDTH)
 SCREEN_HEIGHT_TILES = int(SCREENRECT.height / TILE_HEIGHT)
 
 ASSETS = [
-    "squirrel", "greysquirrel", "tree", "nut", "water", "fox",
+    "squirrel", "greysquirrel", "tree", "nut", "water", "fox", "sun",
     {'name': "summerground", 'mirror': True},
     "bignut", "bignutgrey",
 ]
@@ -33,6 +33,11 @@ class Action(enum.Enum):
     SPACE = 1
     F = 2
     C = 3
+
+
+class Season(enum.Enum):
+    SUMMER = 1
+    WINTER = 2
 
 
 class Game:
@@ -45,6 +50,10 @@ class Game:
     NPC_MOVE_RATE = 1000
     FOX_MOVE_RATE = 150
     N_GROUND_TILES = 30
+    ROUND_DURATION = {
+        Season.SUMMER: 3*60*1000,
+        Season.WINTER: 2*60*1000
+    }
 
     def __init__(self, screen):
         self.font = pg.font.SysFont(pg.font.get_default_font(), 56)
@@ -63,11 +72,14 @@ class Game:
         self.assets = {}
 
         self.energy_bar = pg.Surface((200, 30))
+        self.sunlight_bar = pg.Surface((200, 30))
         self._game_over = False
 
         self.new_pos = Point(self.world.squirrel.pos.x, self.world.squirrel.pos.y)
 
-        self.random_seed = time.time_ns()
+        self.current_season = Season.SUMMER
+        self.current_round_elapsed = 0
+        self._schedule_event(self.update_round_elapsed, 1)
 
     def _generate_nuts(self):
         initial_nuts_for_level = 4
@@ -104,6 +116,12 @@ class Game:
 
     def spawn_nut_event(self, event, current_timestamp):
         self.spawn_random_nut()
+
+    def update_round_elapsed(self, event, current_timestamp):
+        elapsed = current_timestamp - event.last_timestamp
+        self.current_round_elapsed += elapsed
+        if self.current_round_elapsed > self.ROUND_DURATION[self.current_season]:
+            self.over("Summer is over")
 
     def spawn_random_nut(self):
         nutx = random.randint(0, self.world.WIDTH_TILES-1)
@@ -206,8 +224,10 @@ class Game:
         # Draw energy bar
         self.energy_bar.fill((0, 0, 128))
         fill_width = (self.world.squirrel.energy / 1000) * 196
-        self.energy_bar.fill((255, 255, 0), pg.rect.Rect(2, 2, fill_width, 26))
+        self.energy_bar.fill((255, 255, 255), pg.rect.Rect(2, 2, fill_width, 26))
         self.screen.blit(self.energy_bar, (20, 466))
+
+        self.render_sunlight_bar()
 
         self.render_inventory()
 
@@ -215,6 +235,13 @@ class Game:
             self.render_game_over()
 
         pg.display.update()
+
+    def render_sunlight_bar(self):
+        self.sunlight_bar.fill((0, 0, 128))
+        x = (self.current_round_elapsed / self.ROUND_DURATION[self.current_season]) * \
+            (self.sunlight_bar.get_width() - self.assets['sun'].get_width())
+        self.sunlight_bar.blit(self.assets['sun'], (x, 0))
+        self.screen.blit(self.sunlight_bar, (240, 466))
 
     def render_inventory(self):
         if self.world.squirrel.is_carrying_nut():
