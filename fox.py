@@ -43,6 +43,7 @@ class Fox(NPC):
                 self.face_towards(game.world.squirrel.pos)
             elif path is not None and len(path) == 1:
                 self.face_towards(game.world.squirrel.pos)
+                game.over("You got eaten by a fox!")
         elif self.state == Fox.FoxState.RANDOM:
             self.move_randomly(game)
         elif self.state == Fox.FoxState.HUNTING:
