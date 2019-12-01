@@ -33,7 +33,7 @@ Screenshots
 About
 -----
 
-This game is a prototype built very hastily for [GitHub Game Off 2019](https://itch.io/jam/game-off-2019).
+This game is a prototype built very hastily for [GitHub Game Off 2019](https://itch.io/jam/game-off-2019). As such the code quality currently leaves _a lot_ to be desired.
 
 Source code can be found on [GitHub](https://github.com/peterdn/get-dem-nuts/).
 
