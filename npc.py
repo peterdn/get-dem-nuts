@@ -4,7 +4,7 @@ import math
 from queue import PriorityQueue
 import random
 
-from geometry import Direction, dist, Point
+from geometry import Direction, dist, pdist, Point
 
 sign = functools.partial(math.copysign, 1)
 
@@ -82,7 +82,7 @@ def visit(visited, pos, parent=None):
     visited[pos.y][pos.x]['cost'] = 0
     visited[pos.y][pos.x]['parent'] = parent
     if parent is not None:
-        visited[pos.y][pos.x]['cost'] = visited[parent.y][parent.x]['cost'] + 1
+        visited[pos.y][pos.x]['cost'] = visited[parent.y][parent.x]['cost'] + pdist(parent, pos)
 
 
 def reconstruct_path(visited, src, dst):
