@@ -39,7 +39,8 @@ class World:
         return Point(x, y)
 
     def in_world_bounds(self, pos):
-        if pos.x < 0 or pos.x >= self.WIDTH_TILES or pos.y < 0 or pos.y >= self.HEIGHT_TILES:
+        if pos.x < 0 or pos.x >= self.WIDTH_TILES or pos.y < 0 \
+                or pos.y >= self.HEIGHT_TILES:
             return False
         return True
 

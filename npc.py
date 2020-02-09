@@ -112,7 +112,8 @@ def find_path_astar(world, src, dst, impassable=None, within=0):
         for succ in succs:
             if not visited[succ.y][succ.x]:
                 visit(visited, succ, pos)
-                hcost = visited[succ.y][succ.x]['cost'] + dist(succ.x, succ.y, dst.x, dst.y)
+                hcost = visited[succ.y][succ.x]['cost'] + \
+                    dist(succ.x, succ.y, dst.x, dst.y)
                 fringe.put((hcost, succ))
     if dist(pos.x, pos.y, dst.x, dst.y) <= within:
         return reconstruct_path(visited, src, pos)

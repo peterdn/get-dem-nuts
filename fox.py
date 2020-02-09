@@ -28,11 +28,13 @@ class Fox(NPC):
             p = random.random()
             if p <= Fox.HUNT_PROBABILITY:
                 self.state = Fox.FoxState.HUNTING
-                self.hunt_destination = buried_nuts[random.randrange(0, len(buried_nuts))].pos
+                self.hunt_destination = \
+                    buried_nuts[random.randrange(0, len(buried_nuts))].pos
 
     def _within_attack_range(self, game):
-        return pdist(self.pos, game.world.squirrel.pos) <= Fox.ATTACK_DISTANCE \
-                     and not game.world.is_tree(game.world.squirrel.pos)
+        d = pdist(self.pos, game.world.squirrel.pos)
+        return d <= Fox.ATTACK_DISTANCE \
+            and not game.world.is_tree(game.world.squirrel.pos)
 
     def tick(self, game):
         self._randomly_hunt(game)

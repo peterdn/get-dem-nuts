@@ -25,10 +25,10 @@ SCREEN_HEIGHT_TILES = int(SCREENRECT.height / TILE_HEIGHT)
 WHITE_COLOR = (255, 255, 255)
 
 ASSETS = [
-    "squirrel", "greysquirrel", "tree", "wintertree", "nut", "water", "fox", "sun",
+    "squirrel", "greysquirrel", "tree", "wintertree", "nut", "water", "fox",
     {'name': "summerground", 'mirror': True},
     {'name': "winterground", 'mirror': True},
-    "bignut", "bignutgrey", "snow",
+    "bignut", "bignutgrey", "snow", "sun",
 ]
 
 
@@ -86,7 +86,8 @@ class Game:
 
         self.energy_bar = pg.Surface((200, 30))
         self.sunlight_bar = pg.Surface((360, 30))
-        self.nightfall_overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
+        self.nightfall_overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT),
+                                            pg.SRCALPHA)
         self._game_over = False
 
         self.world = World(MAP, self.N_GROUND_TILES)
@@ -99,23 +100,29 @@ class Game:
         self.nightfall = 20
         self.init_season()
 
-        self.new_pos = Point(self.world.squirrel.pos.x, self.world.squirrel.pos.y)
+        self.new_pos = Point(self.world.squirrel.pos.x,
+                             self.world.squirrel.pos.y)
 
     def nightfall_transition(self, event, current_timestamp):
-        if self.nightfall >= self.DAY_TRANSITION_LENGTH / self.DAY_TRANSITION_RATE:
+        if self.nightfall >= \
+                self.DAY_TRANSITION_LENGTH / self.DAY_TRANSITION_RATE:
             complete_next_season()
         else:
-            self.nightfall += (current_timestamp - event.last_timestamp) / self.DAY_TRANSITION_RATE
+            elapsed = (current_timestamp - event.last_timestamp)
+            self.nightfall += elapsed / self.DAY_TRANSITION_RATE
 
     def daylight_transition(self, event, current_timestamp):
         if self.nightfall >= 0:
-            self.nightfall -= (current_timestamp - event.last_timestamp) / self.DAY_TRANSITION_RATE
+            elapsed = (current_timestamp - event.last_timestamp)
+            self.nightfall -= elapsed / self.DAY_TRANSITION_RATE
 
     def next_season(self):
         self.scheduled_events.clear()
 
-        self._schedule_event(self.nightfall_transition, self.DAY_TRANSITION_RATE)
-        self._schedule_event(self.complete_next_season, self.DAY_TRANSITION_LENGTH)
+        self._schedule_event(self.nightfall_transition,
+                             self.DAY_TRANSITION_RATE)
+        self._schedule_event(self.complete_next_season,
+                             self.DAY_TRANSITION_LENGTH)
 
     def complete_next_season(self, event, current_timestamp):
         self.scheduled_events.clear()
@@ -133,7 +140,8 @@ class Game:
         self.init_season()
 
     def init_season(self):
-        self._schedule_event(self.daylight_transition, self.DAY_TRANSITION_RATE)
+        self._schedule_event(self.daylight_transition,
+                             self.DAY_TRANSITION_RATE)
         self._schedule_event(self.update_round_elapsed, 1)
         self._schedule_event(self.energy_loss, Game.ENERGY_LOSS_RATE)
         self._schedule_event(self.tick_squirrels, Game.NPC_MOVE_RATE)
@@ -144,7 +152,8 @@ class Game:
         if self.current_season == Season.SUMMER:
             self._init_squirrels(Game.N_SQUIRRELS)
             self._init_nuts(self.number_nuts_for_level())
-            self._schedule_event(self.spawn_nut_event, self.nut_spawn_rate_for_level())
+            self._schedule_event(self.spawn_nut_event,
+                                 self.nut_spawn_rate_for_level())
         elif self.current_season == Season.WINTER:
             self._init_squirrels(0)
             self._init_nuts(0)
@@ -185,7 +194,8 @@ class Game:
         self.scheduled_events.append(event)
 
     def energy_loss(self, event, current_timestamp):
-        energy_loss = int((current_timestamp - event.last_timestamp) / 1000 * self.ENERGY_LOSS_PER_SEC)
+        elapsed = (current_timestamp - event.last_timestamp)
+        energy_loss = int(elapsed / 1000 * self.ENERGY_LOSS_PER_SEC)
         self.world.squirrel.energy -= energy_loss
 
     def spawn_nut_event(self, event, current_timestamp):
@@ -194,7 +204,8 @@ class Game:
     def update_round_elapsed(self, event, current_timestamp):
         elapsed = current_timestamp - event.last_timestamp
         self.current_round_elapsed += elapsed
-        if self.current_round_elapsed > self.ROUND_DURATION[self.current_season]:
+        if self.current_round_elapsed > \
+                self.ROUND_DURATION[self.current_season]:
             self.next_season()
 
     def spawn_random_nut(self):
@@ -219,7 +230,8 @@ class Game:
             try:
                 surface = pg.image.load(f)
             except pg.error:
-                raise SystemExit(f"Failed to load asset {asset_filename}: {pg.get_error()}")
+                raise SystemExit((f"Failed to load asset {asset_filename}: "
+                                  f"{pg.get_error()}"))
             surface = surface.convert_alpha()
             if surface.get_width() > TILE_WIDTH:
                 self.assets[asset_filename] = []
@@ -228,7 +240,8 @@ class Game:
                     subsurface = surface.subsurface(r)
                     self.assets[asset_filename].append(subsurface)
                     if isinstance(asset, dict) and asset['mirror']:
-                        self.assets[asset_filename].append(pg.transform.flip(subsurface, True, False))
+                        self.assets[asset_filename].append(pg.transform.flip(
+                            subsurface, True, False))
             else:
                 self.assets[asset_filename] = surface.convert_alpha()
 
@@ -246,15 +259,22 @@ class Game:
     def render_map(self):
         for x in range(SCREEN_WIDTH_TILES):
             for y in range(SCREEN_HEIGHT_TILES):
-                (mapx, mapy) = (self.world.squirrel.pos.x + x - int(SCREEN_WIDTH_TILES / 2), self.world.squirrel.pos.y + y - int(SCREEN_HEIGHT_TILES / 2 - 1))
-                if mapx < 0 or mapx >= self.world.WIDTH_TILES or mapy < 0 or mapy >= self.world.HEIGHT_TILES:
+                (mapx, mapy) = (self.world.squirrel.pos.x + x -
+                                int(SCREEN_WIDTH_TILES / 2),
+                                self.world.squirrel.pos.y + y -
+                                int(SCREEN_HEIGHT_TILES / 2 - 1))
+                if mapx < 0 or mapx >= self.world.WIDTH_TILES or mapy < 0 \
+                        or mapy >= self.world.HEIGHT_TILES:
                     self._draw_image_at('water', x, y)
                 elif self.world.MAP[mapy][mapx] == '.':
                     frame = self.world.GROUND_LAYER[mapy][mapx]['tileidx']
-                    ground = 'summerground' if self.current_season == Season.SUMMER else 'winterground'
+                    ground = 'summerground' \
+                        if self.current_season == Season.SUMMER \
+                        else 'winterground'
                     self._draw_image_at(ground, x, y, frame=frame)
                 elif self.world.MAP[mapy][mapx] == '#':
-                    tree = 'tree' if self.current_season == Season.SUMMER else 'wintertree'
+                    tree = 'tree' if self.current_season == Season.SUMMER \
+                                  else 'wintertree'
                     self._draw_image_at(tree, x, y)
 
     def render(self):
@@ -266,25 +286,35 @@ class Game:
         for nut in self.world.nuts.values():
             if nut.state != Nut.NutState.ACTIVE:
                 continue
-            sx = nut.pos.x + int(SCREEN_WIDTH_TILES / 2) - self.world.squirrel.pos.x
-            sy = nut.pos.y + int(SCREEN_HEIGHT_TILES / 2 - 1) - self.world.squirrel.pos.y
-            if sx < 0 or sx >= SCREEN_WIDTH_TILES or sy < 0 or sy >= SCREEN_HEIGHT_TILES:
+            sx = nut.pos.x + int(SCREEN_WIDTH_TILES / 2) - \
+                self.world.squirrel.pos.x
+            sy = nut.pos.y + int(SCREEN_HEIGHT_TILES / 2 - 1) - \
+                self.world.squirrel.pos.y
+            if sx < 0 or sx >= SCREEN_WIDTH_TILES or sy < 0 \
+                    or sy >= SCREEN_HEIGHT_TILES:
                 continue
             self._draw_image_at('nut', sx, sy)
 
         # Draw other squirrels
         for squirrel in self.world.squirrels:
-            sx = squirrel.pos.x + int(SCREEN_WIDTH_TILES / 2) - self.world.squirrel.pos.x
-            sy = squirrel.pos.y + int(SCREEN_HEIGHT_TILES / 2 - 1) - self.world.squirrel.pos.y
-            if sx < 0 or sx >= SCREEN_WIDTH_TILES or sy < 0 or sy >= SCREEN_HEIGHT_TILES:
+            sx = squirrel.pos.x + int(SCREEN_WIDTH_TILES / 2) - \
+                self.world.squirrel.pos.x
+            sy = squirrel.pos.y + int(SCREEN_HEIGHT_TILES / 2 - 1) - \
+                self.world.squirrel.pos.y
+            if sx < 0 or sx >= SCREEN_WIDTH_TILES or sy < 0 \
+                    or sy >= SCREEN_HEIGHT_TILES:
                 continue
-            self._draw_image_at('greysquirrel', sx, sy, frame=squirrel.facing.value-1)
+            self._draw_image_at('greysquirrel', sx, sy,
+                                frame=squirrel.facing.value-1)
 
         # Draw foxes
         for fox in self.world.foxes:
-            sx = fox.pos.x + int(SCREEN_WIDTH_TILES / 2) - self.world.squirrel.pos.x
-            sy = fox.pos.y + int(SCREEN_HEIGHT_TILES / 2 - 1) - self.world.squirrel.pos.y
-            if sx < 0 or sx >= SCREEN_WIDTH_TILES or sy < 0 or sy >= SCREEN_HEIGHT_TILES:
+            sx = fox.pos.x + int(SCREEN_WIDTH_TILES / 2) - \
+                self.world.squirrel.pos.x
+            sy = fox.pos.y + int(SCREEN_HEIGHT_TILES / 2 - 1) - \
+                self.world.squirrel.pos.y
+            if sx < 0 or sx >= SCREEN_WIDTH_TILES or sy < 0 \
+                    or sy >= SCREEN_HEIGHT_TILES:
                 continue
             self._draw_image_at('fox', sx, sy, frame=fox.facing.value-1)
 
@@ -306,7 +336,9 @@ class Game:
         self.render_inventory()
 
         if self.nightfall > 0:
-            nightfall_alpha = (self.nightfall / (self.DAY_TRANSITION_LENGTH / self.DAY_TRANSITION_RATE)) * 255
+            nightfall_alpha = \
+                (self.nightfall / (self.DAY_TRANSITION_LENGTH /
+                                   self.DAY_TRANSITION_RATE)) * 255
             nightfall_alpha = max(0, min(255, nightfall_alpha))
             self.nightfall_overlay.fill((0, 0, 0, nightfall_alpha))
             self.screen.blit(self.nightfall_overlay, (0, 0))
@@ -326,7 +358,8 @@ class Game:
 
         season_icon = 'sun' if self.current_season == Season.SUMMER else 'snow'
         progress_width = self.sunlight_bar.get_width() - txt_width
-        x = (self.current_round_elapsed / self.ROUND_DURATION[self.current_season]) * \
+        x = (self.current_round_elapsed /
+             self.ROUND_DURATION[self.current_season]) * \
             (progress_width - self.assets[season_icon].get_width()) + txt_width
         self.sunlight_bar.blit(self.assets[season_icon], (x, 0))
         self.screen.blit(self.sunlight_bar, (240, 466))
@@ -343,12 +376,17 @@ class Game:
         s.fill((50, 50, 50, 224))
 
         txt = self.game_over_font.render(self._game_over, True, WHITE_COLOR)
-        stat1_txt = self.stats_font.render(f"Seasons survived: {self.stats.seasons_survived}", True, WHITE_COLOR)
-        stat2_txt = self.stats_font.render(f"Nuts eaten: {self.stats.nuts_eaten}", True, WHITE_COLOR)
-        stat3_txt = self.stats_font.render(f"Nuts buried: {len(self.stats.nuts_buried)}", True, WHITE_COLOR)
+        stat1_txt = self.stats_font.render(
+            f"Seasons survived: {self.stats.seasons_survived}", True,
+            WHITE_COLOR)
+        stat2_txt = self.stats_font.render(
+            f"Nuts eaten: {self.stats.nuts_eaten}", True, WHITE_COLOR)
+        stat3_txt = self.stats_font.render(
+            f"Nuts buried: {len(self.stats.nuts_buried)}", True, WHITE_COLOR)
 
         x = (SCREEN_WIDTH - txt.get_width())/2
-        y = (SCREEN_HEIGHT - txt.get_height() - stat1_txt.get_height() - stat2_txt.get_height() - stat3_txt.get_height())/2
+        y = (SCREEN_HEIGHT - txt.get_height() - stat1_txt.get_height() -
+             stat2_txt.get_height() - stat3_txt.get_height())/2
         s.blit(txt, (x, y))
         y += txt.get_height()
         s.blit(stat1_txt, (x, y))
@@ -416,10 +454,13 @@ class Game:
             nut = self.world.is_nut(facing)
             if nut is not None and nut.state == Nut.NutState.ACTIVE:
                 self.stats.nuts_eaten += 1
-                self.world.squirrel.set_energy(self.world.squirrel.energy + nut.energy)
+                self.world.squirrel.set_energy(
+                    self.world.squirrel.energy + nut.energy)
                 del self.world.nuts[nut.id]
-        elif action == Action.C and self.world.is_tree(self.world.squirrel.pos) == self.world.is_tree(facing):
-            if self.world.squirrel.is_carrying_nut() and self.world.can_bury_nut(facing):
+        elif action == Action.C and self.world.is_tree(facing) == \
+                self.world.is_tree(self.world.squirrel.pos):
+            if self.world.squirrel.is_carrying_nut() \
+                    and self.world.can_bury_nut(facing):
                 nut = self.world.squirrel.carrying_nut
                 nut.pos = facing
                 nut.state = Nut.NutState.BURIED
@@ -428,26 +469,38 @@ class Game:
                 self.world.squirrel.carrying_nut = None
             else:
                 nut = self.world.is_nut(facing)
-                if nut is not None and not self.world.squirrel.is_carrying_nut():
+                if nut is not None \
+                        and not self.world.squirrel.is_carrying_nut():
                     if nut.state == Nut.NutState.ACTIVE:
                         self.world.squirrel.carrying_nut = nut
                         del self.world.nuts[nut.id]
                     elif nut.state == Nut.NutState.BURIED:
                         nut.state = Nut.NutState.ACTIVE
         elif action == Action.F:
-            if facingx >= 0 and facingy >= 0 and facingx < self.world.WIDTH_TILES and facingy < self.world.HEIGHT_TILES:
-                self.world.GROUND_LAYER[facingy][facingx]['tileidx'] = random.randint(0, self.N_GROUND_TILES-1)
+            if facingx >= 0 and facingy >= 0 \
+                    and facingx < self.world.WIDTH_TILES \
+                    and facingy < self.world.HEIGHT_TILES:
+                self.world.GROUND_LAYER[facingy][facingx]['tileidx'] = \
+                    random.randint(0, self.N_GROUND_TILES-1)
 
     def tick(self):
         # If we're moving in a cardinal direction, face that way
-        if self.new_pos.x != self.world.squirrel.pos.x and self.new_pos.y == self.world.squirrel.pos.y:
-            self.world.squirrel.facing = Direction.LEFT if self.new_pos.x < self.world.squirrel.pos.x else Direction.RIGHT
-        elif self.new_pos.y != self.world.squirrel.pos.y and self.new_pos.x == self.world.squirrel.pos.x:
-            self.world.squirrel.facing = Direction.UP if self.new_pos.y < self.world.squirrel.pos.y else Direction.DOWN
+        if self.new_pos.x != self.world.squirrel.pos.x \
+                and self.new_pos.y == self.world.squirrel.pos.y:
+            self.world.squirrel.facing = Direction.LEFT \
+                if self.new_pos.x < self.world.squirrel.pos.x \
+                else Direction.RIGHT
+        elif self.new_pos.y != self.world.squirrel.pos.y \
+                and self.new_pos.x == self.world.squirrel.pos.x:
+            self.world.squirrel.facing = Direction.UP \
+                if self.new_pos.y < self.world.squirrel.pos.y \
+                else Direction.DOWN
 
         if self.world.can_move_to(self.new_pos):
-            energy_cost = pdist(self.new_pos, self.world.squirrel.pos) * self.ENERGY_LOSS_MULTIPLIER
-            self.world.squirrel.set_energy(self.world.squirrel.energy - energy_cost)
+            energy_cost = pdist(self.new_pos, self.world.squirrel.pos) * \
+                self.ENERGY_LOSS_MULTIPLIER
+            self.world.squirrel.set_energy(
+                self.world.squirrel.energy - energy_cost)
             self.world.squirrel.pos = self.new_pos
         else:
             self.new_pos = self.world.squirrel.pos
