@@ -37,6 +37,11 @@ This game is a prototype built very hastily for [GitHub Game Off 2019](https://i
 
 Source code can be found on [GitHub](https://github.com/peterdn/get-dem-nuts/).
 
+Development
+-----------
+
+See [DEVELOP.md](DEVELOP.md).
+
 License
 -------
 
