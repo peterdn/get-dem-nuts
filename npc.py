@@ -4,7 +4,7 @@ import math
 from queue import PriorityQueue
 import random
 
-from geometry import Direction, dist, pdist, Point
+from geometry import Direction, pdist, Point
 
 sign = functools.partial(math.copysign, 1)
 
@@ -106,16 +106,16 @@ def find_path_astar(world, src, dst, impassable=None, within=0):
     fringe.put((0, src))
     while not fringe.empty():
         (_priority, pos) = fringe.get()
-        if dist(pos.x, pos.y, dst.x, dst.y) <= within:
+        if pdist(pos, dst) <= within:
             break
         succs = successors(world, pos, impassable)
         for succ in succs:
             if not visited[succ.y][succ.x]:
                 visit(visited, succ, pos)
                 hcost = visited[succ.y][succ.x]['cost'] + \
-                    dist(succ.x, succ.y, dst.x, dst.y)
+                    pdist(succ, dst)
                 fringe.put((hcost, succ))
-    if dist(pos.x, pos.y, dst.x, dst.y) <= within:
+    if pdist(pos, dst) <= within:
         return reconstruct_path(visited, src, pos)
     else:
         return None
