@@ -33,7 +33,8 @@ def visit(visited, pos, parent=None):
     visited[pos.y][pos.x]['cost'] = 0
     visited[pos.y][pos.x]['parent'] = parent
     if parent is not None:
-        visited[pos.y][pos.x]['cost'] = visited[parent.y][parent.x]['cost'] + pdist(parent, pos)
+        visited[pos.y][pos.x]['cost'] = visited[parent.y][parent.x]['cost'] + \
+            pdist(parent, pos)
 
 
 def reconstruct_path(visited, src, dst):
