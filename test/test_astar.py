@@ -1,11 +1,11 @@
 import pytest
 
 from geometry import Point
-from npc import find_path_astar, successors
+from astar import find_path_astar, successors
 from world import World
 
 
-class TestNPC:
+class TestAStar:
     def test_successors(self):
         world = World([['x' for x in range(10)] for y in range(10)])
         ss = successors(world, Point(4, 5))

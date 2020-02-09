@@ -27,7 +27,7 @@ class Squirrel(NPC):
     def set_energy(self, energy):
         self.energy = min(1000, max(0, energy))
 
-    def _randomly_target_nut(self, game):
+    def _maybe_target_random_nut(self, game):
         if self.state == Squirrel.SquirrelState.RANDOM \
                 and game.world.active_nuts():
             active_nuts = game.world.active_nuts()
@@ -38,7 +38,7 @@ class Squirrel(NPC):
                     active_nuts[random.randrange(0, len(active_nuts))].id
 
     def tick(self, game):
-        self._randomly_target_nut(game)
+        self._maybe_target_random_nut(game)
         if self.state == Squirrel.SquirrelState.RANDOM:
             self.move_randomly(game)
         elif self.state == Squirrel.SquirrelState.GETTING_NUT:

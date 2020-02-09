@@ -2,12 +2,12 @@ import enum
 import math
 
 
-def dist(x, y, tx, ty):
+def _dist(x, y, tx, ty):
     return math.sqrt((x - tx)**2 + (y - ty)**2)
 
 
 def pdist(p1, p2):
-    return dist(p1.x, p1.y, p2.x, p2.y)
+    return _dist(p1.x, p1.y, p2.x, p2.y)
 
 
 class Point:
