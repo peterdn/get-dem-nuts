@@ -59,6 +59,18 @@ class Stats:
         self.seasons_survived = 0
 
 
+class GameTime:
+    current_time = 0
+
+    @classmethod
+    def current_time_ms(cls):
+        return cls.current_time
+
+    @classmethod
+    def update(cls, time_delta_ms):
+        cls.current_time += time_delta_ms
+
+
 class Game:
     NUT_SPAWN_RATE = 5000
     ENERGY_LOSS_RATE = 500
@@ -104,6 +116,8 @@ class Game:
 
         self.new_pos = Point(self.world.squirrel.pos.x,
                              self.world.squirrel.pos.y)
+
+        self.paused = False
 
     def nightfall_transition(self, event, current_timestamp):
         if self.nightfall >= \
@@ -534,15 +548,11 @@ class Game:
         self._game_over = message
 
 
-def current_time_ms():
-    return int(time.time() * 1000)
-
-
 class ScheduledEvent:
     def __init__(self, action, period):
         self.action = action
         self.period = period
-        self.last_timestamp = current_time_ms()
+        self.last_timestamp = GameTime.current_time_ms()
 
 
 def main():
@@ -568,27 +578,31 @@ def main():
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     doquit = True
-                if event.key == pg.K_q:
-                    game.rotate(Rotation.CounterClockwise)
-                if event.key == pg.K_e:
-                    game.rotate(Rotation.Clockwise)
-                if event.key in [pg.K_UP, pg.K_w]:
-                    game.face(Direction.UP)
-                if event.key in [pg.K_DOWN, pg.K_s]:
-                    game.face(Direction.DOWN)
-                if event.key in [pg.K_LEFT, pg.K_a]:
-                    game.face(Direction.LEFT)
-                if event.key in [pg.K_RIGHT, pg.K_d]:
-                    game.face(Direction.RIGHT)
-                if event.key == pg.K_SPACE:
-                    game.action(Action.SPACE)
-                if event.key == pg.K_f:
-                    game.action(Action.F)
-                if event.key == pg.K_c:
-                    game.action(Action.C)
+                if event.key == pg.K_p:
+                    game.paused = not game.paused
+                if not game.paused:
+                    if event.key == pg.K_q:
+                        game.rotate(Rotation.CounterClockwise)
+                    if event.key == pg.K_e:
+                        game.rotate(Rotation.Clockwise)
+                    if event.key in [pg.K_UP, pg.K_w]:
+                        game.face(Direction.UP)
+                    if event.key in [pg.K_DOWN, pg.K_s]:
+                        game.face(Direction.DOWN)
+                    if event.key in [pg.K_LEFT, pg.K_a]:
+                        game.face(Direction.LEFT)
+                    if event.key in [pg.K_RIGHT, pg.K_d]:
+                        game.face(Direction.RIGHT)
+                    if event.key == pg.K_SPACE:
+                        game.action(Action.SPACE)
+                    if event.key == pg.K_f:
+                        game.action(Action.F)
+                    if event.key == pg.K_c:
+                        game.action(Action.C)
 
-        if not game._game_over:
-            current_timestamp = current_time_ms()
+        if not game._game_over and not game.paused:
+            GameTime.update(clock.get_time())
+            current_timestamp = GameTime.current_time_ms()
 
             if current_timestamp > last_move_timestamp + \
                     MOVE_KEYPRESS_INTERVAL:
