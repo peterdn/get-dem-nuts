@@ -278,8 +278,6 @@ class Game:
                     self._draw_image_at(tree, x, y)
 
     def render(self):
-        self.screen.fill((30, 182, 202))
-
         self.render_map()
 
         # Render nuts
