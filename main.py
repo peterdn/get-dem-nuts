@@ -15,6 +15,7 @@ from squirrel import Squirrel
 from world import World
 
 
+# Logical screen dimensions. This will be scaled to fit the display window.
 SCREEN_WIDTH = 672
 SCREEN_HEIGHT = 512
 SCREENRECT = pg.rect.Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -80,7 +81,8 @@ class Game:
         self.stats_font = pg.font.Font(font_path, 28)
         self.score_font = pg.font.Font(font_path, 24)
 
-        self.screen = screen
+        self.screen = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.display_screen = screen
         self.assets = {}
         self.stats = Stats()
 
@@ -344,6 +346,28 @@ class Game:
         if self._game_over:
             self.render_game_over()
 
+        # Scale logical screen to fit window display.
+        display_width = self.display_screen.get_width()
+        display_height = self.display_screen.get_height()
+        scale_x = display_width / SCREEN_WIDTH
+        scale_y = display_height / SCREEN_HEIGHT
+        scale = min(scale_x, scale_y)
+
+        if scale != 1:
+            scaled_width = int(SCREEN_WIDTH * scale)
+            scaled_height = int(SCREEN_HEIGHT * scale)
+            screen_x = int((display_width - scaled_width) / 2)
+            screen_y = int((display_height - scaled_height) / 2)
+
+            scaled_screen = pg.transform.scale(
+                self.screen, (scaled_width, scaled_height))
+        else:
+            screen_x, screen_y = 0, 0
+            scaled_screen = self.screen
+
+        self.display_screen.fill((0, 0, 0))
+        self.display_screen.blit(scaled_screen, (screen_x, screen_y))
+
         pg.display.update()
 
     def render_sunlight_bar(self):
@@ -525,7 +549,7 @@ def main():
     pg.init()
     pg.font.init()
 
-    screen = pg.display.set_mode(SCREENRECT.size, 0)
+    screen = pg.display.set_mode(SCREENRECT.size, pg.RESIZABLE)
     clock = pg.time.Clock()
 
     pg.display.set_caption('get dem nuts')
