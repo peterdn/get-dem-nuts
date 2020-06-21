@@ -27,10 +27,20 @@ SCREEN_HEIGHT_TILES = int(SCREENRECT.height / TILE_HEIGHT)
 WHITE_COLOR = (255, 255, 255)
 
 ASSETS = [
-    "squirrel", "greysquirrel", "tree", "wintertree", "nut", "water", "fox",
-    {'name': "summerground", 'mirror': True},
-    {'name': "winterground", 'mirror': True},
-    "bignut", "bignutgrey", "snow", "sun",
+    {'name': "squirrel", 'tiles': True},
+    {'name': "greysquirrel",  'tiles': True},
+    {'name': "tree",  'tiles': True},
+    {'name': "wintertree", 'tiles': True},
+    {'name': "nut",  'tiles': True},
+    {'name': "water",  'tiles': True},
+    {'name': "fox", 'tiles': True},
+    {'name': "summerground", 'tiles': True, 'mirror': True},
+    {'name': "winterground", 'tiles': True, 'mirror': True},
+    {'name': "bignut", 'tiles': True},
+    {'name': "bignutgrey", 'tiles': True},
+    {'name': "snow", 'tiles': True},
+    {'name': "sun", 'tiles': True},
+    {'name': "menu", 'tiles': False},
 ]
 
 
@@ -92,7 +102,10 @@ class Controller:
 class MainMenuController(Controller):
     def handle(self, event, game):
         if event.type == pg.KEYDOWN:
-            game.state = GameState.STARTED
+            if event.key == pg.K_n:
+                game.state = GameState.STARTED
+            elif event.key in [pg.K_x, pg.K_ESCAPE]:
+                return True
 
     def tick(self, game, clock):
         pass
@@ -124,7 +137,7 @@ class GameController(Controller):
                 game.action(Action.F)
             if event.key == pg.K_c:
                 game.action(Action.C)
-            if event.key == pg.K_p:
+            if event.key == pg.K_ESCAPE:
                 game.state = GameState.PAUSED
 
     def tick(self, game, clock):
@@ -160,8 +173,13 @@ class GameController(Controller):
 class PauseMenuController(Controller):
     def handle(self, event, game):
         if event.type == pg.KEYDOWN:
-            if event.key == pg.K_p:
+            if event.key in [pg.K_r, pg.K_ESCAPE]:
                 game.state = GameState.STARTED
+            if event.key == pg.K_n:
+                game.reset()
+                game.state = GameState.STARTED
+            elif event.key == pg.K_x:
+                return True
 
     def tick(self, game, clock):
         pass
@@ -194,7 +212,7 @@ class Game:
 
     def __init__(self, screen):
         font_path = os.path.join(resource_dir(), "freesansbold.ttf")
-        self.game_over_font = pg.font.Font(font_path, 48)
+        self.title_font = pg.font.Font(font_path, 48)
         self.stats_font = pg.font.Font(font_path, 28)
         self.score_font = pg.font.Font(font_path, 24)
 
@@ -363,13 +381,14 @@ class Game:
                 raise SystemExit((f"Failed to load asset {asset_filename}: "
                                   f"{pg.get_error()}"))
             surface = surface.convert_alpha()
-            if surface.get_width() > TILE_WIDTH:
+            if surface.get_width() > TILE_WIDTH and isinstance(asset, dict) \
+                    and asset.get('tiles'):
                 self.assets[asset_filename] = []
                 for i in range(int(surface.get_width() / TILE_WIDTH)):
                     r = pg.rect.Rect(i*TILE_WIDTH, 0, TILE_WIDTH, TILE_HEIGHT)
                     subsurface = surface.subsurface(r)
                     self.assets[asset_filename].append(subsurface)
-                    if isinstance(asset, dict) and asset['mirror']:
+                    if isinstance(asset, dict) and asset.get('mirror'):
                         self.assets[asset_filename].append(pg.transform.flip(
                             subsurface, True, False))
             else:
@@ -471,10 +490,12 @@ class Game:
             self.nightfall_overlay.fill((0, 0, 0, nightfall_alpha))
             self.screen.blit(self.nightfall_overlay, (0, 0))
 
-        if self.state in [GameState.NOT_STARTED, GameState.PAUSED]:
+        # TODO: this is blatent polymorphism.
+        if self.state == GameState.NOT_STARTED:
             self.render_menu()
-
-        if self.state == GameState.OVER:
+        elif self.state == GameState.PAUSED:
+            self.render_pause_menu()
+        elif self.state == GameState.OVER:
             self.render_game_over()
 
         # Scale logical screen to fit window display.
@@ -528,8 +549,8 @@ class Game:
         s = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
         s.fill((50, 50, 50, 224))
 
-        txt = self.game_over_font.render(self._game_over_message, True,
-                                         WHITE_COLOR)
+        txt = self.title_font.render(self._game_over_message, True,
+                                     WHITE_COLOR)
         stat1_txt = self.stats_font.render(
             f"Seasons survived: {self.stats.seasons_survived}", True,
             WHITE_COLOR)
@@ -537,10 +558,13 @@ class Game:
             f"Nuts eaten: {self.stats.nuts_eaten}", True, WHITE_COLOR)
         stat3_txt = self.stats_font.render(
             f"Nuts buried: {len(self.stats.nuts_buried)}", True, WHITE_COLOR)
+        continue_txt = self.stats_font.render(
+            f"Press any key to return to main menu...", True, WHITE_COLOR)
 
         x = (SCREEN_WIDTH - txt.get_width())/2
         y = (SCREEN_HEIGHT - txt.get_height() - stat1_txt.get_height() -
-             stat2_txt.get_height() - stat3_txt.get_height())/2
+             stat2_txt.get_height() - stat3_txt.get_height() -
+             continue_txt.get_height())/2
         s.blit(txt, (x, y))
         y += txt.get_height()
         s.blit(stat1_txt, (x, y))
@@ -548,12 +572,65 @@ class Game:
         s.blit(stat2_txt, (x, y))
         y += stat1_txt.get_height()
         s.blit(stat3_txt, (x, y))
+        y += stat1_txt.get_height()
+        s.blit(continue_txt, (x, y))
 
         self.screen.blit(s, (0, 0))
 
     def render_menu(self):
         s = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
-        s.fill((50, 50, 50, 224))
+        s.fill((50, 50, 50, 120))
+
+        self._draw_image_at("menu", 0, 0)
+
+        txt1 = self.title_font.render("get dem nuts", True,
+                                      WHITE_COLOR)
+        txt2 = self.stats_font.render("Start (N)ew Game", True,
+                                      WHITE_COLOR)
+        txt3 = self.stats_font.render("E(x)it", True,
+                                      WHITE_COLOR)
+
+        x1 = (SCREEN_WIDTH - txt1.get_width())/2
+        y = (SCREEN_HEIGHT - txt1.get_height() - txt2.get_height() -
+             txt2.get_height())/2 - 20
+        s.blit(txt1, (x1, y))
+        x2 = (SCREEN_WIDTH - txt2.get_width())/2
+        y += txt1.get_height() + 15
+        s.blit(txt2, (x2, y))
+        x3 = (SCREEN_WIDTH - txt3.get_width())/2
+        y += txt2.get_height() + 5
+        s.blit(txt3, (x3, y))
+
+        self.screen.blit(s, (0, 0))
+
+    def render_pause_menu(self):
+        s = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
+        s.fill((50, 50, 50, 120))
+
+        self._draw_image_at("menu", 0, 0)
+
+        txt1 = self.title_font.render("get dem nuts", True,
+                                      WHITE_COLOR)
+        txt2 = self.stats_font.render("(R)esume Game", True,
+                                      WHITE_COLOR)
+        txt3 = self.stats_font.render("Start (N)ew Game", True,
+                                      WHITE_COLOR)
+        txt4 = self.stats_font.render("E(x)it", True,
+                                      WHITE_COLOR)
+
+        x1 = (SCREEN_WIDTH - txt1.get_width())/2
+        y = (SCREEN_HEIGHT - txt1.get_height() - txt2.get_height() -
+             txt3.get_height() - txt4.get_height())/2 - 20
+        s.blit(txt1, (x1, y))
+        x2 = (SCREEN_WIDTH - txt2.get_width())/2
+        y += txt1.get_height() + 15
+        s.blit(txt2, (x2, y))
+        x3 = (SCREEN_WIDTH - txt3.get_width())/2
+        y += txt2.get_height() + 5
+        s.blit(txt3, (x3, y))
+        x4 = (SCREEN_WIDTH - txt4.get_width())/2
+        y += txt3.get_height() + 5
+        s.blit(txt4, (x4, y))
 
         self.screen.blit(s, (0, 0))
 
@@ -699,10 +776,9 @@ def main():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 doquit = True
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_ESCAPE:
-                    doquit = True
-            game.controllers[game.state].handle(event, game)
+            if game.controllers[game.state].handle(event, game):
+                doquit = True
+                break
 
         game.controllers[game.state].tick(game, clock)
 
