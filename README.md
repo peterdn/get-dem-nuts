@@ -14,7 +14,7 @@ Controls
 | Space       | Eat nut                  |
 | C           | Pick up / bury nut       |
 | F           | Scrabble ground          |
-| Escape      | Quit game                |
+| Escape      | Pause / main menu        |
 
 Hints
 -----
