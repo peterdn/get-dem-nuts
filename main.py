@@ -7,6 +7,7 @@ import time
 
 import pygame as pg
 
+from abc import abstractmethod
 from geometry import Direction, pdist, Point, Rotation
 from fox import Fox
 from map import MAP
@@ -52,6 +53,13 @@ class Season(enum.Enum):
     WINTER = "winter"
 
 
+class GameState(enum.Enum):
+    NOT_STARTED = 1
+    STARTED = 2
+    PAUSED = 3
+    OVER = 4
+
+
 class Stats:
     def __init__(self):
         self.nuts_eaten = 0
@@ -69,6 +77,103 @@ class GameTime:
     @classmethod
     def update(cls, time_delta_ms):
         cls.current_time += time_delta_ms
+
+
+class Controller:
+    @abstractmethod
+    def handle(self, event, game):
+        pass
+
+    @abstractmethod
+    def tick(self, game, clock):
+        pass
+
+
+class MainMenuController(Controller):
+    def handle(self, event, game):
+        if event.type == pg.KEYDOWN:
+            game.state = GameState.STARTED
+
+    def tick(self, game, clock):
+        pass
+
+
+class GameController(Controller):
+    MOVE_KEYPRESS_INTERVAL = 100
+
+    def __init__(self):
+        self.last_move_timestamp = 0
+
+    def handle(self, event, game):
+        if event.type == pg.KEYDOWN:
+            if event.key == pg.K_q:
+                game.rotate(Rotation.CounterClockwise)
+            if event.key == pg.K_e:
+                game.rotate(Rotation.Clockwise)
+            if event.key in [pg.K_UP, pg.K_w]:
+                game.face(Direction.UP)
+            if event.key in [pg.K_DOWN, pg.K_s]:
+                game.face(Direction.DOWN)
+            if event.key in [pg.K_LEFT, pg.K_a]:
+                game.face(Direction.LEFT)
+            if event.key in [pg.K_RIGHT, pg.K_d]:
+                game.face(Direction.RIGHT)
+            if event.key == pg.K_SPACE:
+                game.action(Action.SPACE)
+            if event.key == pg.K_f:
+                game.action(Action.F)
+            if event.key == pg.K_c:
+                game.action(Action.C)
+            if event.key == pg.K_p:
+                game.state = GameState.PAUSED
+
+    def tick(self, game, clock):
+        GameTime.update(clock.get_time())
+        current_timestamp = GameTime.current_time_ms()
+
+        if current_timestamp > self.last_move_timestamp + \
+                GameController.MOVE_KEYPRESS_INTERVAL:
+            keystate = pg.key.get_pressed()
+            direction = None
+            if keystate[pg.K_UP] or keystate[pg.K_w]:
+                game.move(Direction.UP)
+                self.last_move_timestamp = current_timestamp
+            if keystate[pg.K_DOWN] or keystate[pg.K_s]:
+                game.move(Direction.DOWN)
+                self.last_move_timestamp = current_timestamp
+            if keystate[pg.K_LEFT] or keystate[pg.K_a]:
+                game.move(Direction.LEFT)
+                self.last_move_timestamp = current_timestamp
+            if keystate[pg.K_RIGHT] or keystate[pg.K_d]:
+                game.move(Direction.RIGHT)
+                self.last_move_timestamp = current_timestamp
+
+        for scheduled_event in game.scheduled_events:
+            if current_timestamp > scheduled_event.last_timestamp + \
+                                    scheduled_event.period:
+                scheduled_event.action(scheduled_event, current_timestamp)
+                scheduled_event.last_timestamp = current_timestamp
+
+        game.tick()
+
+
+class PauseMenuController(Controller):
+    def handle(self, event, game):
+        if event.type == pg.KEYDOWN:
+            if event.key == pg.K_p:
+                game.state = GameState.STARTED
+
+    def tick(self, game, clock):
+        pass
+
+
+class GameOverController(Controller):
+    def handle(self, event, game):
+        if event.type == pg.KEYDOWN:
+            game.reset()
+
+    def tick(self, game, clock):
+        pass
 
 
 class Game:
@@ -96,17 +201,26 @@ class Game:
         self.screen = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.display_screen = screen
         self.assets = {}
-        self.stats = Stats()
 
         self.energy_bar = pg.Surface((200, 30))
         self.sunlight_bar = pg.Surface((360, 30))
         self.nightfall_overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT),
                                             pg.SRCALPHA)
-        self._game_over = False
 
-        self.world = World(MAP, self.N_GROUND_TILES)
+        self.controllers = {
+            GameState.NOT_STARTED: MainMenuController(),
+            GameState.STARTED: GameController(),
+            GameState.PAUSED: PauseMenuController(),
+            GameState.OVER: GameOverController(),
+        }
 
+        self.reset()
+
+    def reset(self):
         self.scheduled_events = []
+
+        self.stats = Stats()
+        self.world = World(MAP, self.N_GROUND_TILES)
 
         self.level = 1
         self.current_season = Season.SUMMER
@@ -117,7 +231,7 @@ class Game:
         self.new_pos = Point(self.world.squirrel.pos.x,
                              self.world.squirrel.pos.y)
 
-        self.paused = False
+        self.state = GameState.NOT_STARTED
 
     def nightfall_transition(self, event, current_timestamp):
         if self.nightfall >= \
@@ -357,7 +471,10 @@ class Game:
             self.nightfall_overlay.fill((0, 0, 0, nightfall_alpha))
             self.screen.blit(self.nightfall_overlay, (0, 0))
 
-        if self._game_over:
+        if self.state in [GameState.NOT_STARTED, GameState.PAUSED]:
+            self.render_menu()
+
+        if self.state == GameState.OVER:
             self.render_game_over()
 
         # Scale logical screen to fit window display.
@@ -411,7 +528,8 @@ class Game:
         s = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
         s.fill((50, 50, 50, 224))
 
-        txt = self.game_over_font.render(self._game_over, True, WHITE_COLOR)
+        txt = self.game_over_font.render(self._game_over_message, True,
+                                         WHITE_COLOR)
         stat1_txt = self.stats_font.render(
             f"Seasons survived: {self.stats.seasons_survived}", True,
             WHITE_COLOR)
@@ -430,6 +548,12 @@ class Game:
         s.blit(stat2_txt, (x, y))
         y += stat1_txt.get_height()
         s.blit(stat3_txt, (x, y))
+
+        self.screen.blit(s, (0, 0))
+
+    def render_menu(self):
+        s = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
+        s.fill((50, 50, 50, 224))
 
         self.screen.blit(s, (0, 0))
 
@@ -542,10 +666,11 @@ class Game:
             self.new_pos = self.world.squirrel.pos
 
         if self.world.squirrel.energy <= 0:
-            self._game_over = "You ran out of energy!"
+            self.over("You ran out of energy!")
 
     def over(self, message):
-        self._game_over = message
+        self._game_over_message = message
+        self.state = GameState.OVER
 
 
 class ScheduledEvent:
@@ -568,7 +693,6 @@ def main():
     game.load_assets()
 
     last_move_timestamp = 0
-    MOVE_KEYPRESS_INTERVAL = 100
 
     doquit = False
     while not doquit:
@@ -578,56 +702,9 @@ def main():
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     doquit = True
-                if event.key == pg.K_p:
-                    game.paused = not game.paused
-                if not game.paused:
-                    if event.key == pg.K_q:
-                        game.rotate(Rotation.CounterClockwise)
-                    if event.key == pg.K_e:
-                        game.rotate(Rotation.Clockwise)
-                    if event.key in [pg.K_UP, pg.K_w]:
-                        game.face(Direction.UP)
-                    if event.key in [pg.K_DOWN, pg.K_s]:
-                        game.face(Direction.DOWN)
-                    if event.key in [pg.K_LEFT, pg.K_a]:
-                        game.face(Direction.LEFT)
-                    if event.key in [pg.K_RIGHT, pg.K_d]:
-                        game.face(Direction.RIGHT)
-                    if event.key == pg.K_SPACE:
-                        game.action(Action.SPACE)
-                    if event.key == pg.K_f:
-                        game.action(Action.F)
-                    if event.key == pg.K_c:
-                        game.action(Action.C)
+            game.controllers[game.state].handle(event, game)
 
-        if not game._game_over and not game.paused:
-            GameTime.update(clock.get_time())
-            current_timestamp = GameTime.current_time_ms()
-
-            if current_timestamp > last_move_timestamp + \
-                    MOVE_KEYPRESS_INTERVAL:
-                keystate = pg.key.get_pressed()
-                direction = None
-                if keystate[pg.K_UP] or keystate[pg.K_w]:
-                    game.move(Direction.UP)
-                    last_move_timestamp = current_timestamp
-                if keystate[pg.K_DOWN] or keystate[pg.K_s]:
-                    game.move(Direction.DOWN)
-                    last_move_timestamp = current_timestamp
-                if keystate[pg.K_LEFT] or keystate[pg.K_a]:
-                    game.move(Direction.LEFT)
-                    last_move_timestamp = current_timestamp
-                if keystate[pg.K_RIGHT] or keystate[pg.K_d]:
-                    game.move(Direction.RIGHT)
-                    last_move_timestamp = current_timestamp
-
-            for scheduled_event in game.scheduled_events:
-                if current_timestamp > scheduled_event.last_timestamp + \
-                                       scheduled_event.period:
-                    scheduled_event.action(scheduled_event, current_timestamp)
-                    scheduled_event.last_timestamp = current_timestamp
-
-            game.tick()
+        game.controllers[game.state].tick(game, clock)
 
         game.render()
 
