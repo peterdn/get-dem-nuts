@@ -769,8 +769,6 @@ def main():
     game = Game(screen)
     game.load_assets()
 
-    last_move_timestamp = 0
-
     doquit = False
     while not doquit:
         for event in pg.event.get():
