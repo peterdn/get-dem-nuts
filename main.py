@@ -46,7 +46,7 @@ ASSETS = [
 
 def resource_dir():
     try:
-        base_path = sys._MEIPASS
+        base_path = getattr(sys, '_MEIPASS')
     except Exception:
         base_path = os.path.abspath(os.path.curdir)
     return os.path.join(base_path, 'assets')
@@ -252,12 +252,8 @@ class Game:
         self.state = GameState.NOT_STARTED
 
     def nightfall_transition(self, event, current_timestamp):
-        if self.nightfall >= \
-                self.DAY_TRANSITION_LENGTH / self.DAY_TRANSITION_RATE:
-            complete_next_season()
-        else:
-            elapsed = (current_timestamp - event.last_timestamp)
-            self.nightfall += elapsed / self.DAY_TRANSITION_RATE
+        elapsed = (current_timestamp - event.last_timestamp)
+        self.nightfall += elapsed / self.DAY_TRANSITION_RATE
 
     def daylight_transition(self, event, current_timestamp):
         if self.nightfall >= 0:
@@ -486,7 +482,7 @@ class Game:
             nightfall_alpha = \
                 (self.nightfall / (self.DAY_TRANSITION_LENGTH /
                                    self.DAY_TRANSITION_RATE)) * 255
-            nightfall_alpha = max(0, min(255, nightfall_alpha))
+            nightfall_alpha = max(0, min(255, int(nightfall_alpha)))
             self.nightfall_overlay.fill((0, 0, 0, nightfall_alpha))
             self.screen.blit(self.nightfall_overlay, (0, 0))
 
