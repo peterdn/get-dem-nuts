@@ -24,7 +24,7 @@ class Character(ABC):
             self.facing = Direction.LEFT
 
     @abstractclassmethod
-    def _can_move_to(cls, pos):
+    def _can_move_to(cls, game, pos):
         pass
 
     def can_move_to(self, pos):

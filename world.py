@@ -1,4 +1,5 @@
 import random
+from typing import List
 
 from geometry import Direction, Point
 from nut import Nut
@@ -12,8 +13,9 @@ class World:
         self.HEIGHT_TILES = len(self.MAP)
         self.N_GROUND_TILES = N_GROUND_TILES
 
-        self.GROUND_LAYER = [[{} for x in range(self.WIDTH_TILES)]
-                             for y in range(self.HEIGHT_TILES)]
+        self.GROUND_LAYER: List[List[dict]] = \
+            [[{} for x in range(self.WIDTH_TILES)]
+             for y in range(self.HEIGHT_TILES)]
 
         for x in range(self.WIDTH_TILES):
             for y in range(self.HEIGHT_TILES):

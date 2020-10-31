@@ -8,7 +8,7 @@ from geometry import pdist, Point
 
 def successors(world_map: List[str],
                src: Point,
-               impassable: Union[str, Character] = None):
+               impassable: Optional[Union[str, Character]] = None):
 
     if impassable is None:
         impassable = ''
@@ -43,7 +43,7 @@ class VisitState:
 
 def visit(visited: List[List[VisitState]],
           pos: Point,
-          parent: Point = None):
+          parent: Optional[Point] = None):
     visited[pos.y][pos.x] = VisitState(True, 0, parent)
     if parent is not None:
         visited[pos.y][pos.x].cost = visited[parent.y][parent.x].cost + \
@@ -67,7 +67,7 @@ def reconstruct_path(visited: List[List[VisitState]],
 def find_path_astar(world_map: List[str],
                     src: Point,
                     dst: Point,
-                    impassable: Union[str, Character] = None,
+                    impassable: Optional[Union[str, Character]] = None,
                     within: int = 0):
 
     if impassable is None:

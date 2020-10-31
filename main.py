@@ -370,7 +370,7 @@ class Game:
     def load_assets(self):
         assets_path = resource_dir()
         for asset in ASSETS:
-            asset_filename = asset if isinstance(asset, str) else asset['name']
+            asset_filename = asset['name']
             f = os.path.join(assets_path, f"{asset_filename}.png")
             try:
                 surface = pg.image.load(f)
