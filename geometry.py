@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import enum
 import math
 
@@ -6,31 +7,10 @@ def _dist(x: int, y: int, tx: int, ty: int) -> float:
     return math.sqrt((x - tx)**2 + (y - ty)**2)
 
 
+@dataclass(order=True, frozen=True)
 class Point:
-    __slots__ = ['x', 'y']
-
-    def __init__(self, x: int, y: int):
-        self.x = x
-        self.y = y
-
-    def __eq__(self, other) -> bool:
-        return isinstance(other, Point) and \
-            (self.x, self.y) == (other.x, other.y)
-
-    def __hash__(self) -> int:
-        return hash((self.x, self.y))
-
-    def __lt__(self, other) -> bool:
-        return (self.x, self.y) < (other.x, other.y)
-
-    def __repr__(self) -> str:
-        return f"({self.x}, {self.y})"
-
-    def __setattr__(self, name, value):
-        if name in self.__slots__:
-            object.__setattr__(self, name, value)
-        else:
-            raise NotImplementedError
+    x: int
+    y: int
 
 
 def pdist(p1: Point, p2: Point) -> float:
