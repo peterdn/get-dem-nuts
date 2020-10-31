@@ -6,8 +6,8 @@ from squirrel import Squirrel
 
 
 class World:
-    def __init__(self, map, N_GROUND_TILES=1):
-        self.MAP = map
+    def __init__(self, world_map, N_GROUND_TILES=1):
+        self.MAP = world_map
         self.WIDTH_TILES = len(self.MAP[0])
         self.HEIGHT_TILES = len(self.MAP)
         self.N_GROUND_TILES = N_GROUND_TILES
@@ -20,7 +20,7 @@ class World:
                 self.GROUND_LAYER[y][x]['tileidx'] = \
                     random.randint(0, self.N_GROUND_TILES-1)
 
-        self.squirrel = Squirrel(Point(23, 22), Direction.DOWN)
+        self.squirrel = Squirrel(self, Point(23, 22), Direction.DOWN)
         self.squirrels = []
         self.foxes = []
         self.nuts = {}

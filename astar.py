@@ -1,25 +1,31 @@
+from dataclasses import dataclass
 from queue import PriorityQueue
+from typing import List, Optional, Tuple, Union
 
+from character import Character
 from geometry import pdist, Point
 
 
-def successors(world, src, impassable=None):
+def successors(world_map: List[str],
+               src: Point,
+               impassable: Union[str, Character] = None):
+
     if impassable is None:
         impassable = ''
 
-    height = len(world.MAP)
-    width = len(world.MAP[0])
+    height = len(world_map)
+    width = len(world_map[0])
 
-    def valid_successor(p):
+    def valid_successor(p: Point):
         if p.x == src.x and p.y == src.y:
             return False
         if p.x < 0 or p.y < 0 or p.x >= width or p.y >= height:
             return False
 
         if isinstance(impassable, str):
-            return world.MAP[p.y][p.x] not in impassable
-        elif isinstance(impassable, object):
-            return impassable.can_move_to(world, p)
+            return world_map[p.y][p.x] not in impassable
+        elif isinstance(impassable, Character):
+            return impassable.can_move_to(p)
 
     successors = [Point(x, y) for x in range(src.x-1, src.x+2)
                   for y in range(src.y-1, src.y+2)]
@@ -28,43 +34,59 @@ def successors(world, src, impassable=None):
     return successors
 
 
-def visit(visited, pos, parent=None):
-    visited[pos.y][pos.x] = {}
-    visited[pos.y][pos.x]['cost'] = 0
-    visited[pos.y][pos.x]['parent'] = parent
+@dataclass
+class VisitState:
+    visited: bool = False
+    cost: float = 0
+    parent: Optional[Point] = None
+
+
+def visit(visited: List[List[VisitState]],
+          pos: Point,
+          parent: Point = None):
+    visited[pos.y][pos.x] = VisitState(True, 0, parent)
     if parent is not None:
-        visited[pos.y][pos.x]['cost'] = visited[parent.y][parent.x]['cost'] + \
+        visited[pos.y][pos.x].cost = visited[parent.y][parent.x].cost + \
             pdist(parent, pos)
 
 
-def reconstruct_path(visited, src, dst):
+def reconstruct_path(visited: List[List[VisitState]],
+                     src: Point,
+                     dst: Point):
     pos = Point(dst.x, dst.y)
     path = [pos]
     while pos != src:
-        pos = visited[pos.y][pos.x]['parent']
+        parent = visited[pos.y][pos.x].parent
+        assert parent is not None
+        pos = parent
         path.append(pos)
     path.reverse()
     return path
 
 
-def find_path_astar(world, src, dst, impassable=None, within=0):
+def find_path_astar(world_map: List[str],
+                    src: Point,
+                    dst: Point,
+                    impassable: Union[str, Character] = None,
+                    within: int = 0):
+
     if impassable is None:
         impassable = ''
 
-    visited = [[False for x in range(world.WIDTH_TILES)]
-               for y in range(world.HEIGHT_TILES)]
+    visited = [[VisitState() for x in range(len(world_map[0]))]
+               for y in range(len(world_map))]
     visit(visited, src)
-    fringe = PriorityQueue()
+    fringe: PriorityQueue[Tuple[int, Point]] = PriorityQueue()
     fringe.put((0, src))
     while not fringe.empty():
-        (_priority, pos) = fringe.get()
+        (_, pos) = fringe.get()
         if pdist(pos, dst) <= within:
             break
-        succs = successors(world, pos, impassable)
+        succs = successors(world_map, pos, impassable)
         for succ in succs:
-            if not visited[succ.y][succ.x]:
+            if not visited[succ.y][succ.x].visited:
                 visit(visited, succ, pos)
-                hcost = visited[succ.y][succ.x]['cost'] + \
+                hcost = visited[succ.y][succ.x].cost + \
                     pdist(succ, dst)
                 fringe.put((hcost, succ))
     if pdist(pos, dst) <= within:

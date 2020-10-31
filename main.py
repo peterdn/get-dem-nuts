@@ -320,7 +320,8 @@ class Game:
     def _init_squirrels(self, nsquirrels):
         self.world.squirrels.clear()
         for i in range(nsquirrels):
-            squirrel = Squirrel(self.world.random_point(), Direction.RIGHT)
+            squirrel = Squirrel(self, self.world.random_point(),
+                                Direction.RIGHT)
             self.world.squirrels.append(squirrel)
 
     def _init_foxes(self, nfoxes):
@@ -328,9 +329,9 @@ class Game:
         for i in range(nfoxes):
             while True:
                 pos = self.world.random_point()
-                if Fox._can_move_to(self.world, pos):
+                if Fox._can_move_to(self, pos):
                     break
-            fox = Fox(pos, Direction.DOWN)
+            fox = Fox(self, pos, Direction.DOWN)
             self.world.foxes.append(fox)
 
     def _schedule_event(self, action, period):
@@ -360,11 +361,11 @@ class Game:
 
     def tick_squirrels(self, event, current_timestamp):
         for squirrel in self.world.squirrels:
-            squirrel.tick(self)
+            squirrel.tick()
 
     def tick_foxes(self, event, current_timestamp):
         for fox in self.world.foxes:
-            fox.tick(self)
+            fox.tick()
 
     def load_assets(self):
         assets_path = resource_dir()
