@@ -45,6 +45,6 @@ See [DEVELOP.md](DEVELOP.md).
 License
 -------
 
-Code is licensed under a [BSD 2-clause "Simplfied" License](LICENSE).
+Code is licensed under a [BSD 2-clause "Simplified" License](LICENSE).
 
 Assets are licensed under a [Creative Commons Attribution 4.0 International License](assets/LICENSE).
